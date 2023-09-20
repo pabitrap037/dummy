@@ -1,1 +1,5 @@
 http://localhost:8000/?points=[[-2,2,3],[2,4,2]]&sizes=[0.5,0.5]&messages=[%22Wing%20tip%20slightly%20bent%22,%20%22Weird%20noise%20coming%20from%20right%20engine%22]
+
+
+
+<HTML> 3dViz = "<iframe src="http://localhost:8000/"></iframe>"
