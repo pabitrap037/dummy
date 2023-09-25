@@ -1,4 +1,30 @@
 
+// Function to load and parse CSV data
+function loadCSVData(callback) {
+    fs.createReadStream('your_csv_file.csv') // Replace with your CSV file path
+        .pipe(csv())
+        .on('data', (row) => {
+            // Extract the desired columns and store them as an object
+            const x = parseFloat(row.x); // Assuming x is numeric
+            const y = parseFloat(row.y); // Assuming y is numeric
+            const z = parseFloat(row.z); // Assuming z is numeric
+            const message = row.message; // Assuming message is a string
+
+            // Check if all values are valid (not NaN)
+            if (!isNaN(x) && !isNaN(y) && !isNaN(z) && message) {
+                points.push({ x, y, z, message });
+            }
+        })
+        .on('end', () => {
+            // All data has been read and parsed
+            console.log('Points:', points);
+
+            // Call the provided callback function (e.g., additionalActions)
+            callback(points);
+        });
+}
+
+==================================================================
 // Import required modules
 const fs = require('fs');
 const csv = require('csv-parser');
