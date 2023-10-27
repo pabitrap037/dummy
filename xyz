@@ -1,3 +1,6 @@
+New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "cert:\LocalMachine\My" -Subject "localhost" -FriendlyName "localhost" -NotAfter (Get-Date).AddYears(10)
+==============================================================
+
 // Get the canvas element
 const canvas = document.getElementById("renderCanvas");
 
