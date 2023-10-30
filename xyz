@@ -1,3 +1,5 @@
+https://dummy-3lf.pages.dev/
+==================================================================
 New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "cert:\LocalMachine\My" -Subject "localhost" -FriendlyName "localhost" -NotAfter (Get-Date).AddYears(10)
 ==============================================================
 
