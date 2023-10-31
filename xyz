@@ -1,3 +1,21 @@
+import requests
+from PIL import Image
+
+# URL of the image you want to download
+image_url = 'https://images.app.goo.gl/RtAhjjr7YPK7J8mW7'
+
+# Send an HTTP GET request to download the image
+response = requests.get(image_url)
+
+if response.status_code == 200:
+    # Convert the response content into an image
+    image = Image.open(io.BytesIO(response.content))
+
+    # Save the image to your Databricks workspace
+    image.save('/dbfs/path_to_save_image.jpg')
+=============================
+
+
 from PIL import Image, ImageDraw
 
 # Load the image
