@@ -1,3 +1,26 @@
+from PIL import Image, ImageDraw
+
+# Load the image
+image_path = "/dbfs/path_to_your_image.jpg"
+image = Image.open(image_path)
+
+# Create a drawing context
+draw = ImageDraw.Draw(image)
+
+# Define the line coordinates (x1, y1, x2, y2)
+line_coordinates = (50, 50, 200, 200)
+
+# Draw the line on the image with a curve joint and fill set to black
+draw.line(line_coordinates, fill='black', width=3, joint='curve')
+
+# Save the modified image
+output_image_path = "/dbfs/path_to_output_image.jpg"
+image.save(output_image_path)
+
+# Display the image (optional)
+image.show()
+==================================================
+
 https://dummy-3lf.pages.dev/
 ==================================================================
 New-SelfSignedCertificate -DnsName "localhost" -CertStoreLocation "cert:\LocalMachine\My" -Subject "localhost" -FriendlyName "localhost" -NotAfter (Get-Date).AddYears(10)
