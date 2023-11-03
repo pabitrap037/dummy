@@ -1,3 +1,11 @@
+
+CombinedImages = 
+CONCATENATEX(
+    YourTable,
+    "<img src='" & YourTable[ImageURL1] & "'/> <img src='" & YourTable[ImageURL2] & "'/>",
+    " "
+)
+=============================================
 import requests
 from PIL import Image
 
