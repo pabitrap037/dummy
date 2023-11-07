@@ -1,4 +1,13 @@
+=========================================
+@pytest.fixture
+def event_df():
+    dictionary = {"row1": ["v1", "v2", "v3"], "row2": ["v4", "v5", "v6"]}
+    return spark.createDataframe(dictionary)
 
+def test_event_raw_to_curated():
+    assert event_raw_to_curated(event_df()) == expected_dataframe
+
+======================================
 CombinedImages = 
 CONCATENATEX(
     YourTable,
