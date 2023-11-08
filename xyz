@@ -1,3 +1,27 @@
+========================================================
+@pytest.fixture
+def test_data():
+    df_expected = spark.sql('select top 1 * from dmro_curated.inspection')
+    return df
+
+def test_event_raw_to_curated(version, raw_table_version="",test_data):
+    result_df = event_raw_to_curated(test_data)
+    assert result_df.isnull().any()
+    assert "load_timestamp" in result_df.columns
+    assert "processed" in result_df.columns
+    pass
+
+def test_event_inspection_raw_to_curated(test_data):
+    result_df = event_raw_to_curated(test_data)
+    assert result_df.isnull().any()
+    assert "load_timestamp" in result_df.columns
+    assert "processed" in result_df.columns
+    pass
+
+ def test_extract_min_max(test_data):
+        result_df = extract_min_max(test_data)
+        assert result_df.isnull().any()
+
 ======================================================================
 # Databricks notebook sourcefrom pyspark.sql import DataFrame, functions as F
 from pyspark.sql.types import StringType, FloatType
