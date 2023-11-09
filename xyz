@@ -1,139 +1,33 @@
-========================================================
+======================================================================
 @pytest.fixture
 def test_data():
-    df_expected = spark.sql('select top 1 * from dmro_curated.inspection')
-    return df
+    mock_data_df = pd.read_csv('dmro_mock_final.csv')
+    df_test_data = spark.sql('select * from mock_data_df') 
+    return df_test_data
 
-def test_event_raw_to_curated(version, raw_table_version="",test_data):
-    result_df = event_raw_to_curated(test_data)
-    assert result_df.isnull().any()
-    assert "load_timestamp" in result_df.columns
-    assert "processed" in result_df.columns
-    pass
-
-def test_event_inspection_raw_to_curated(test_data):
-    result_df = event_raw_to_curated(test_data)
-    assert result_df.isnull().any()
-    assert "load_timestamp" in result_df.columns
-    assert "processed" in result_df.columns
-    pass
-
- def test_extract_min_max(test_data):
-        result_df = extract_min_max(test_data)
-        assert result_df.isnull().any()
-
-======================================================================
-# Databricks notebook sourcefrom pyspark.sql import DataFrame, functions as F
-from pyspark.sql.types import StringType, FloatType
-from pyspark.sql.window import Window
-import re
-
-# COMMAND ----------
-
-# MAGIC %run ./common_functions
-
-# COMMAND ----------
-
-def event_raw_to_curated(version, raw_table_version=""):
-
-    v = add_underscore(version)
-
-    raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
-
-    df_event = spark.sql(f"""
-        select distinct(data_event_id) as event_id,
-            data_event_name as event_name,
-            data_event_engineProgram as engine_program
+def function_one_event_raw_to_curated(test_data):
+    output_df = spark.sql(f"""
+        select distinct(part_number) as part_number,
+             serial_number,
+            automated_disposition
         from {raw_table}
         -- where processed = False
     """)
+    expected_df = df_test_data.select(distinct('part_number'),'serial_number','automated_disposition').where(df_test_data.processed='False')
+    assert output_df == expected_df
 
-    df_event = df_event.withColumn("load_timeStamp", F.current_timestamp()) \
-                        .withColumn("processed", F.lit(False))
+def function_two_of_event_raw_to_curated():
+    assert "load_timestamp" in result_df.columns
+    assert "processed" in result_df.columns
 
-    # df_event.display()
-    save_table(
-        df=df_event,
-        table_name="event",
-        data_layer="curated",
-        version=v
-    )
-
-# COMMAND ----------
-
-def event_raw_to_curated(version, raw_table_version=""):
-
-    v = add_underscore(version)
-
-    raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
-
-    df_event = spark.sql(f"""
-        select distinct(data_event_id) as event_id,
-            data_event_name as event_name,
-            data_event_engineProgram as engine_program
-        from {raw_table}
-        -- where processed = False
-    """)
-
-    df_event = df_event.withColumn("load_timeStamp", F.current_timestamp()) \
-                        .withColumn("processed", F.lit(False))
-
-    # df_event.display()
-    save_table(
-        df=df_event,
-        table_name="event",
-        data_layer="curated",
-        version=v
-    )
+def event_raw_to_curated(test_data):
+    df_test_data.createOrReplaceTempView("raw_table")
+    #query one converted to one function
+    function_one_event_raw_to_curated(df_test_data)
+    function_two_event_raw_to_curated(df_test_data)
 
 
-test_df = 
-
-raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
-
-df = spark.read.table(raw_table)
-
-
-def raw_to_curated_event(df: DataFrame)
-
-    # df_event = spark.sql(f"""
-    #         select distinct(data_event_id) as event_id,
-    #             data_event_name as event_name,
-    #             data_event_engineProgram as engine_program
-    #         from {raw_table}
-    #         -- where processed = False
-    #     """)
-    df_event = df.select(event_id, etc.)
-
-
-    df_event = df_event.withColumn("load_timeStamp", F.current_timestamp()) \
-                        .withColumn("processed", F.lit(False))
-
-    return df_event
-
-
-# COMMAND ----------
-
-@pytest.fixture
-def event_df():
-    dictionary = {"row1": ["v1", "v2", "v3"], "row2": ["v4", "v5", "v6"]}
-    return spark.createDataframe(dictionary)
-
-
-def test_event_raw_to_curated():
-    assert event_raw_to_curated(event_df()) == expected_dataframe
-
-
-
-
-
-# COMMAND ----------
-
-def inspection_raw_to_curated(version, raw_table_version=""):
-
-    v = add_underscore(version)
-
-    raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
+def inspection_raw_to_curated(test_data):
 
     df_inspection = spark.sql(f"""
         select distinct(data_inspection_uuid) as insp_uuid,
@@ -169,287 +63,31 @@ def inspection_raw_to_curated(version, raw_table_version=""):
         version=v
     )
 
-# COMMAND ----------
+========================================================
+@pytest.fixture
+def test_data():
+    df_expected = spark.sql('select top 1 * from dmro_curated.inspection')
+    return df
 
-def observation_raw_to_curated(version, raw_table_version=""):
+def test_event_raw_to_curated(version, raw_table_version="",test_data):
+    result_df = event_raw_to_curated(test_data)
+    assert result_df.isnull().any()
+    assert "load_timestamp" in result_df.columns
+    assert "processed" in result_df.columns
+    pass
 
-    v = add_underscore(version)
+def test_event_inspection_raw_to_curated(test_data):
+    result_df = event_raw_to_curated(test_data)
+    assert result_df.isnull().any()
+    assert "load_timestamp" in result_df.columns
+    assert "processed" in result_df.columns
+    pass
 
-    raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
+ def test_extract_min_max(test_data):
+        result_df = extract_min_max(test_data)
+        assert result_df.isnull().any()
 
-    df_observation = spark.sql(f"""
-        select distinct data_observation_uuid as obs_uuid,
-            -- not in current data set
-            -- data_observation_inspectionTable as obs_description, 
-            data_observation_areaPath as obs_distress_name,
-            data_observation_attributes_type as obs_type,
-            data_observation_adHocArea as obs_adHocArea,
-            data_observation_conditionName as obs_condition_name,
-            data_observation_standardConditionName as obs_condition_standard_name,
-            data_observation_disposition as obs_disposition_type,
-            -- cot in current data set
-            -- data_observation_conditionAdHoc as obse_conditionAdHoc,
-            data_observation_noneObserved as obs_none_observed,
-            -- data_observation_attributes_adHoc as obs_attribute_ad_hoc,
-            data_observation_servicableLimit as obs_serviceable_limit_description,
-            data_observation_repairableLimit as obs_repairable_limit_description
-        from {raw_table}
-    """)
-
-    df_observation = df_observation.withColumn("load_timeStamp", F.current_timestamp()) \
-                        .withColumn("processed", F.lit(False))
-
-    # df_observation.display()
-    save_table(
-        df=df_observation,
-        table_name="observation",
-        data_layer="curated",
-        version=v
-    )
-
-# COMMAND ----------
-
-def attribute_raw_to_curated(version, raw_table_version=""):
-
-    v = add_underscore(version)
-
-    raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
-
-    # The following query returns duplicate records without the group by all columns clause
-    df_attribute = spark.sql(f"""
-        select  data_observation_uuid as observation_uuid,
-            data_observation_attributes_name as attribute_name,
-            -- data_observation_areaPath as area_path,
-            -- regexp_extract(data_observation_attributes_value, r'^(\d*\.\d+|\d+)') as attribute_value,
-            -- regexp_extract(data_observation_attributes_value, r'^(?!(\d*\.\d+|\d+))') as attribute_comment,
-            case
-                when data_observation_attributes_value regexp '^[0-9]*\.?[0-9]+?' then data_observation_attributes_value
-                else null
-            end as value,
-            case   
-                when data_observation_attributes_value regexp '^[0-9]*\.?[0-9]+?' then null
-                else data_observation_attributes_value
-            end as comment,
-            data_observation_attributes_adHoc as attribute_ad_hoc
-        from {raw_table}
-        group by observation_uuid,
-            attribute_name,
-            value,
-            comment,
-            attribute_ad_hoc
-    """)
-
-    df_attribute = df_attribute.withColumn("load_timeStamp", F.current_timestamp()) \
-                        .withColumn("processed", F.lit(False))
-
-    # df_attribute.display()
-    save_table(
-        df=df_attribute,
-        table_name="attribute",
-        data_layer="curated",
-        version=v
-    )
-
-# COMMAND ----------
-
-def limit_raw_to_curated(version, raw_table_version=""):
-
-    v = add_underscore(version)
-
-    raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
-
-
-    def extract_min_max(limit: str):
-        _max = "null"
-        _min = "null"
-        regex = u"([0-9]+\.[0-9]+)\s+inch"
-        try:
-            limits = re.findall(regex, limit)
-        except TypeError:
-            return
-        
-        limit = limit.lower()
-        if "maximum" not in limit and "no longer than" not in limit:
-            regex = u"([0-9]+\.[0-9]+)(?:\s*-\s*([0-9]+\.[0-9]+))?\s+inch"
-            limits = re.findall(regex, limit)
-            try:
-                _min = limits[0][0]
-                _max = limits[0][1]
-            except IndexError:
-                pass
-
-        else:
-            _max = limits[0]
-            if "minimum" in limit:
-                _min = limits[1]
-        return f"{_min}, {_max}"
-
-
-    min_max_udf = F.udf(lambda x: extract_min_max(x), StringType())
-
-    df_limits = spark.sql("""
-        with latest_inspection as (
-            select
-                data_observation_areaPath,
-                data_observation_conditionName,
-                max(data_inspection_createdAt::timestamp) as latest_insp
-            from pwi_raw.initial_10_17
-            group by 1, 2
-        ),
-
-        full_table_latest_inspection as (
-            -- join cte back to raw table in order to find the servicable limit with an inspection date that matches the latest
-            select
-                raw.data_observation_areaPath as lim_distress_name,
-                raw.data_observation_conditionName as lim_condition_name,
-                raw.data_inspection_createdAt::timestamp as lim_date_changed,
-                raw.data_observation_servicableLimit as lim_comment
-            from pwi_raw.initial_10_17 as raw
-            left join latest_inspection
-                on raw.data_observation_areaPath = latest_inspection.data_observation_areaPath
-                and raw.data_observation_conditionName = latest_inspection.data_observation_conditionName
-            where raw.data_inspection_createdAt::timestamp = latest_inspection.latest_insp
-            group by
-                lim_distress_name,
-                lim_condition_name,
-                lim_date_changed,
-                lim_comment
-        ),
-
-        limits_w_count as (
-            -- add a count of limits (i.e. count of different lim_comment values) per lim_distress_name/lim_condition_name/lim_date_changed combination
-            select lim_distress_name,
-            lim_condition_name,
-            lim_date_changed,
-            lim_comment,
-            count(*) over (partition by lim_distress_name, lim_condition_name, lim_date_changed order by lim_distress_name) as limit_count
-            from full_table_latest_inspection
-        )
-
-        -- for conflicting servicable limits (identified by having limit_count > 1), exclude those with value of 'not permitted'; this resolves most limit conflicts
-        select
-            lim_distress_name,
-            lim_condition_name,
-            lim_date_changed,
-            lim_comment
-        from limits_w_count
-        where limit_count = 1 or (
-            limit_count > 1 and lower(lim_comment) != 'not permitted'
-        )
-        order by limit_count desc, lim_distress_name, lim_condition_name
-    """)
-
-    df_limits = df_limits.withColumn("min_max", min_max_udf(F.col("lim_comment")))
-    split_col = F.split(df_limits["min_max"], ", ")
-    df_limits = df_limits.withColumn(
-            "lim_minimum",
-            F.when(split_col.getItem(0) == "null", None) \
-                .otherwise(split_col.getItem(0)) \
-                    .cast(FloatType())
-    ) \
-        .withColumn(
-            "lim_maximum",
-        F.when(split_col.getItem(1) == "null", None) \
-            .otherwise(split_col.getItem(1)) \
-                    .cast(FloatType())
-        )
-
-    df_limits = df_limits.select(
-        "lim_distress_name",
-        "lim_condition_name",
-        "lim_minimum",
-        "lim_maximum",
-        "lim_date_changed",
-        "lim_comment"
-    )
-
-    # df_limits still contains a few conflicting limits, so we select the lowest lim_minimum value per lim_distress_name/lim_condition_name/lim_date_changed combination and choose the record with the matching lim_minimum
-    window_spec = Window.partitionBy(
-        "lim_distress_name",
-        "lim_condition_name",
-        "lim_date_changed"
-    ).orderBy("lim_distress_name")
-
-    df_limits = df_limits.withColumn("min_minimum", F.min("lim_minimum").over(window_spec))
-
-    df_filtered = df_limits.filter((F.col("lim_minimum").isNull()) | (F.col("lim_minimum") == F.col("min_minimum")))
-
-    # in at least one case, two conflicting servicable limits have the same lim_min and lim_max values; in such cases, we simply pick the first
-
-    window_spec_1 = Window.partitionBy(
-        "lim_distress_name",
-        "lim_condition_name",
-        "lim_date_changed"
-    ).orderBy("lim_date_changed")
-
-    df_filtered = df_filtered.withColumn("row_num", F.row_number().over(window_spec_1))
-    df_filtered = df_filtered.filter(F.col("row_num") == 1).drop("row_num")
-
-    save_table(
-        df=df_filtered,
-        table_name="limit",
-        data_layer="curated",
-        version=v
-    )
-    
-
-# COMMAND ----------
-
-version = ""
-raw_version = "10_17"
-
-# event_raw_to_curated(version, raw_version)
-inspection_raw_to_curated(version, raw_version)
-# observation_raw_to_curated(version, raw_version)
-# attribute_raw_to_curated(version, raw_version)
-# limit_raw_to_curated(version, raw_version)
-
-
-
-# COMMAND ----------
-
-drop_table_delete_data("pwi_curated.inspection")
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC
-# MAGIC -- query to show Chris on 10/30
-# MAGIC
-# MAGIC select *
-# MAGIC from pwi_curated.limit_10_25
-# MAGIC where lim_comment != 'Not permitted'
-# MAGIC qualify count(*) over (partition by lim_distress_name, lim_condition_name, lim_date_changed order by lim_distress_name) > 1
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC
-# MAGIC select lim_condition_name
-# MAGIC from pwi_curated.limit
-# MAGIC group by 1
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC
-# MAGIC select obs_distress_name, count(*)
-# MAGIC from pwi_curated.observation
-# MAGIC group by 1
-# MAGIC order by 1
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC
-# MAGIC select obs_distress_name, count(*)
-# MAGIC from pwi_curated.observation
-# MAGIC where obs_distress_name
-# MAGIC ilike '%ID EDGES%'
-# MAGIC group by 1
-
-
-=========================================
+============================================================================================
 @pytest.fixture
 def event_df():
     dictionary = {"row1": ["v1", "v2", "v3"], "row2": ["v4", "v5", "v6"]}
