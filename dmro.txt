@@ -1,0 +1,65 @@
+i have visual.ts in visual studio code with following code:
+import powerbi from "powerbi-visuals-api";
+
+import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
+
+import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
+
+import IVisual = powerbi.extensibility.visual.IVisual;
+
+ 
+
+import "./../style/visual.less"
+
+ 
+
+export class Visual implements IVisual {
+
+    private target: HTMLElement;
+
+    private updateCount: number;
+
+    constructor(options: VisualConstructorOptions) {
+
+        console.log('Visual constructor', options);
+
+        this.target = options.element;
+
+        this.updateCount = 0;
+
+    }
+
+    public update(options: VisualUpdateOptions) {
+
+ 
+
+        console.log('Visual update', options);
+
+        this.target.innerHTML='<p>Update Count:<em>${(this.updateCount++)}</em></p>';
+
+       
+
+    }
+
+}
+and i need to embedd a iframe which has following code:
+iFrame Content =
+
+"<iframe src='http://localhost:8000/?points=[" &
+
+    CONCATENATEX('Table', "[" & 'Table'[x] & "," & 'Table'[y] & "," & 'Table'[z] & "]", ",") &
+
+    "]&sizes=[" &
+
+    LEFT(REPT("0.5,", COUNTROWS('Table')), LEN(REPT("0.5,", COUNTROWS('Table'))) - 1) &
+
+    "]&messages=[" &
+
+    SUBSTITUTE(CONCATENATEX('Table', "%22" & 'Table'[Defect_name] & "%22", ","), ",", ",") &
+
+    "]' style='width:100%; height:100vh'>
+
+    </iframe>"
+	
+but i need a code which will embed  the iframe and will have a postmessage method which will take data from the dataset actualy this need to be done
+as if i import using custom visual in power bi the 3d model reloads when its filtered
