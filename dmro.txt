@@ -1,65 +1,134 @@
-i have visual.ts in visual studio code with following code:
-import powerbi from "powerbi-visuals-api";
+def limit_raw_to_curated(version, raw_table_version=""):
 
-import VisualConstructorOptions = powerbi.extensibility.visual.VisualConstructorOptions;
+    v = add_underscore(version)
 
-import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
+    raw_table = f"pwi_raw.initial{add_underscore(raw_table_version)}"
 
-import IVisual = powerbi.extensibility.visual.IVisual;
+    #min and max from the string field
+    def extract_min_max(limit: str):
+        _max = "null"
+        _min = "null"
+        regex = u"([0-9]+\.[0-9]+)\s+inch"
+        try:
+            limits = re.findall(regex, limit)
+        except TypeError:
+            return
+        
+        limit = limit.lower()
+        if "maximum" not in limit and "no longer than" not in limit:
+            regex = u"([0-9]+\.[0-9]+)(?:\s*-\s*([0-9]+\.[0-9]+))?\s+inch"
+            limits = re.findall(regex, limit)
+            try:
+                _min = limits[0][0]
+                _max = limits[0][1]
+            except IndexError:
+                pass
 
- 
+        else:
+            _max = limits[0]
+            if "minimum" in limit:
+                _min = limits[1]
+        return f"{_min}, {_max}"
+####################################
 
-import "./../style/visual.less"
+    min_max_udf = F.udf(lambda x: extract_min_max(x), StringType())
 
- 
+    df_limits = spark.sql("""
+        with latest_inspection as (
+            select
+                data_observation_areaPath,
+                data_observation_conditionName,
+                max(data_inspection_createdAt::timestamp) as latest_insp
+            from pwi_raw.initial_10_17
+            group by 1, 2
+        ),
 
-export class Visual implements IVisual {
+        full_table_latest_inspection as (
+            -- join cte back to raw table in order to find the servicable limit with an inspection date that matches the latest
+            select
+                raw.data_observation_areaPath as lim_distress_name,
+                raw.data_observation_conditionName as lim_condition_name,
+                raw.data_inspection_createdAt::timestamp as lim_date_changed,
+                raw.data_observation_servicableLimit as lim_comment
+            from pwi_raw.initial_10_17 as raw
+            left join latest_inspection
+                on raw.data_observation_areaPath = latest_inspection.data_observation_areaPath
+                and raw.data_observation_conditionName = latest_inspection.data_observation_conditionName
+            where raw.data_inspection_createdAt::timestamp = latest_inspection.latest_insp
+            group by
+                lim_distress_name,
+                lim_condition_name,
+                lim_date_changed,
+                lim_comment
+        ),
 
-    private target: HTMLElement;
+        limits_w_count as (
+            -- add a count of limits (i.e. count of different lim_comment values) per lim_distress_name/lim_condition_name/lim_date_changed combination
+            select lim_distress_name,
+            lim_condition_name,
+            lim_date_changed,
+            lim_comment,
+            count(*) over (partition by lim_distress_name, lim_condition_name, lim_date_changed order by lim_distress_name) as limit_count
+            from full_table_latest_inspection
+        )
 
-    private updateCount: number;
+        -- for conflicting servicable limits (identified by having limit_count > 1), exclude those with value of 'not permitted'; this resolves most limit conflicts
+        select
+            lim_distress_name,
+            lim_condition_name,
+            lim_date_changed,
+            lim_comment
+        from limits_w_count
+        where limit_count = 1 or (
+            limit_count > 1 and lower(lim_comment) != 'not permitted'
+        )
+        order by limit_count desc, lim_distress_name, lim_condition_name
+    """)
+    ####################
 
-    constructor(options: VisualConstructorOptions) {
+    df_limits = df_limits.withColumn("min_max", min_max_udf(F.col("lim_comment")))
+    split_col = F.split(df_limits["min_max"], ", ")
+    df_limits = df_limits.withColumn(
+            "lim_minimum",
+            F.when(split_col.getItem(0) == "null", None) \
+                .otherwise(split_col.getItem(0)) \
+                    .cast(FloatType())
+    ) \
+        .withColumn(
+            "lim_maximum",
+        F.when(split_col.getItem(1) == "null", None) \
+            .otherwise(split_col.getItem(1)) \
+                    .cast(FloatType())
+        )
+###############################
+    df_limits = df_limits.select(
+        "lim_distress_name",
+        "lim_condition_name",
+        "lim_minimum",
+        "lim_maximum",
+        "lim_date_changed",
+        "lim_comment"
+    )
 
-        console.log('Visual constructor', options);
+    # df_limits still contains a few conflicting limits, so we select the lowest lim_minimum value per lim_distress_name/lim_condition_name/lim_date_changed combination and choose the record with the matching lim_minimum
+    window_spec = Window.partitionBy(
+        "lim_distress_name",
+        "lim_condition_name",
+        "lim_date_changed"
+    ).orderBy("lim_distress_name")#
 
-        this.target = options.element;
+    df_limits = df_limits.withColumn("min_minimum", F.min("lim_minimum").over(window_spec))
 
-        this.updateCount = 0;
+    df_filtered = df_limits.filter((F.col("lim_minimum").isNull()) | (F.col("lim_minimum") == F.col("min_minimum")))
 
-    }
+    # in at least one case, two conflicting servicable limits have the same lim_min and lim_max values; in such cases, we simply pick the first
 
-    public update(options: VisualUpdateOptions) {
+    window_spec_1 = Window.partitionBy(
+        "lim_distress_name",
+        "lim_condition_name",
+        "lim_date_changed"
+    ).orderBy("lim_date_changed")
 
- 
+    df_filtered = df_filtered.withColumn("row_num", F.row_number().over(window_spec_1))
+    df_filtered = df_filtered.filter(F.col("row_num") == 1).drop("row_num")
 
-        console.log('Visual update', options);
-
-        this.target.innerHTML='<p>Update Count:<em>${(this.updateCount++)}</em></p>';
-
-       
-
-    }
-
-}
-and i need to embedd a iframe which has following code:
-iFrame Content =
-
-"<iframe src='http://localhost:8000/?points=[" &
-
-    CONCATENATEX('Table', "[" & 'Table'[x] & "," & 'Table'[y] & "," & 'Table'[z] & "]", ",") &
-
-    "]&sizes=[" &
-
-    LEFT(REPT("0.5,", COUNTROWS('Table')), LEN(REPT("0.5,", COUNTROWS('Table'))) - 1) &
-
-    "]&messages=[" &
-
-    SUBSTITUTE(CONCATENATEX('Table', "%22" & 'Table'[Defect_name] & "%22", ","), ",", ",") &
-
-    "]' style='width:100%; height:100vh'>
-
-    </iframe>"
-	
-but i need a code which will embed  the iframe and will have a postmessage method which will take data from the dataset actualy this need to be done
-as if i import using custom visual in power bi the 3d model reloads when its filtered
