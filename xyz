@@ -1,4 +1,46 @@
 
+def function_attribute_raw_to_curated():
+    # The following query returns duplicate records without the group by all columns clause
+    df_attribute = spark.sql(f"""
+        select  data_observation_uuid as observation_uuid,
+            data_observation_attributes_name as attribute_name,
+            case
+                when data_observation_attributes_value regexp '^[0-9]*\.?[0-9]+?' then data_observation_attributes_value
+                else null
+            end as value,
+            case   
+                when data_observation_attributes_value regexp '^[0-9]*\.?[0-9]+?' then null
+                else data_observation_attributes_value
+            end as comment,
+            data_observation_attributes_adHoc as attribute_ad_hoc
+        from {raw_table_attribute}
+        group by observation_uuid,
+            attribute_name,
+            value,
+            comment,
+            attribute_ad_hoc
+    """)
+    return df_attribute
+
+
+def test_attribute_raw_to_curated():
+    dictionary_attribute_input = {
+        'data_observation_uuid':'3333_uuid',
+        'data_observation_attributes_name':'dummy_attribute_name',
+        'data_observation_attributes_value':'10.451 - 12.059 inches (345.534  - 423.454 mm)'
+    }
+    df_input = spark.createDataframe(dictionary_attribute_input)
+    spark.createOrReplaceTempView('raw_table_attribute')
+    dictionary_attribute_expected = {
+        'data_observation_uuid':'3333_uuid',
+        'data_observation_attributes_name':'dummy_attribute_name',
+        'data_observation_attributes_value':'10.451'
+    }
+    expected_df = spark.createDataframe(dictionary_attribute_expected)
+    output_df = function_attribute_raw_to_curated(df_input)
+    assert output_df.toPandas().equals(expected_df.toPandas())
+
+###########################################################################################
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
