@@ -1,4 +1,58 @@
 import pandas as pd
+
+# Mock data in JSON format
+json_data = [
+    {
+        "inspection.uuid": "abc123",
+        "obs.uuid": "123"
+    },
+    {
+        "inspection.uuid": None,
+        "obs.uuid": "456"
+    },
+    {
+        "inspection.uuid": "ghi789",
+        "obs.uuid": None
+    }
+]
+
+# Convert JSON data to a DataFrame
+df = pd.DataFrame(json_data)
+
+def preprocess_validation_ppi(df_validations):
+    excluded_files = []
+    
+    # Creating Dictionary for storing the data as a table
+    exclude_files_dict = {'reason': [], 'value': []}
+
+    for index, row in df_validations.iterrows():
+        if pd.isnull(row['inspection.uuid']):
+            excluded_files.append(row['inspection.uuid'])
+            exclude_files_dict['reason'].append('Null inspection.uuid')
+            exclude_files_dict['value'].append(row['value'])
+
+        if pd.isnull(row['obs.uuid']):
+            excluded_files.append(row['obs.uuid'])
+            exclude_files_dict['reason'].append('Null obs.uuid')
+            exclude_files_dict['value'].append(row['value'])
+
+    # Additional processing or actions can be performed here
+
+    return excluded_files, exclude_files_dict
+
+# Call the function for each row
+for index, row in df.iterrows():
+    excluded_files, exclude_files_dict = preprocess_validation_ppi(pd.DataFrame([row]))
+
+    # Print the results for each row
+    print(f"Row {index + 1}:")
+    print("Excluded Files:", excluded_files)
+    print("Exclude Files Dictionary:")
+    print(exclude_files_dict)
+    print("\n")
+
+####################################
+import pandas as pd
 import json
 
 with open('data_file.json', 'r') as file:
