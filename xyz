@@ -1,4 +1,25 @@
+import pandas as pd
+import json
 
+with open('data_file.json', 'r') as file:
+    json_data = json.load(file)
+
+# Convert JSON data to a DataFrame
+df = pd.DataFrame(json_data)
+preprocess_validation_ppi(df)
+
+
+def preprocess_validation_ppi(df_validations:DataFrame):
+    
+    excluded_files = []
+    #creating Dictionary for storing the data as table
+    exclude_files_dict={'reason':[],
+                            'value':[]}
+   
+
+    for index,row in df_validations.iterrows():
+        if df_validations['inspection.uuid'] is 
+######################################################
 def function_attribute_raw_to_curated():
     # The following query returns duplicate records without the group by all columns clause
     df_attribute = spark.sql(f"""
