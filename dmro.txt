@@ -1,3 +1,50 @@
+####################################################
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col
+
+###########################################
+
+@pytest.fixture
+def test_data():
+    dictionary = {
+        'data_event_id': '111111',
+        'data_event_name': 'new_event',
+        'data_event_engineProgram': 'engine_new',
+        'data_inspection_uuid':'111-uuid',
+        'data_inspection_createdAt':'11/10/2023',
+        'data_inspection_name':'dummy_inspection_name'
+    }
+    test_data_df = spark.createDataFrame([dictionary])
+    test_data_df.createOrReplaceTempView("raw_table")
+    print('hello1')
+    return test_data_df
+
+###########################################
+def function_event_raw_to_curated(raw_table):
+    df_event = spark.sql(f"""
+        select distinct(data_event_id) as event_id,
+            data_event_name as event_name,
+            data_event_engineProgram as engine_program
+        from {raw_table}
+    """)
+    print('hello2')
+    return df_event
+
+###########################################
+def test_event_raw_to_curated(test_data):
+    output_df = function_event_raw_to_curated("raw_table")
+
+    expected_df = test_data.select(col('data_inspection_uuid').alias('event_id'),
+                                   col('data_event_name').alias('event_name'),
+                                   col('data_event_engineProgram').alias('engine_program')).distinct()
+
+    # Assuming you want to compare the data, you can convert the DataFrames to Pandas and compare
+    print('hello3')
+    assert output_df.toPandas().equals(expected_df.toPandas())
+
+#############################################################
 def limit_raw_to_curated(version, raw_table_version=""):
 
     v = add_underscore(version)
