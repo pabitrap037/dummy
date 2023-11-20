@@ -1,3 +1,33 @@
+###############################################################
+import tracemalloc
+import unittest
+from pyspark.sql.functions import col
+test_data = {'data_event_id': '111111', 'data_event_name': 'new_event', 'data_event_engineProgram': 'engine_new',
+             'data_inspection_uuid': '111-uuid', 'data_inspection_createdAt': '11/10/2023',
+             'data_inspection_name': 'dummy_inspection_name'}
+test_data_df = spark.createDataFrame([test_data])
+test_data_df.createOrReplaceTempView("raw_table")
+
+def function_event_raw_to_curated(raw_table):
+    df_event = spark.sql(f"""
+        SELECT DISTINCT(data_event_id) as event_id,
+            data_event_name as event_name,
+            data_event_engineProgram as engine_program
+        FROM {raw_table}
+    """)
+    return df_event
+
+class TestEventRawToCurated(unittest.TestCase):
+    def test_event_raw_to_curated(self):
+        output_df = function_event_raw_to_curated("raw_table")
+        expected_df = test_data_df.select(col('data_event_id').alias('event_id'),
+                                          col('data_event_name').alias('event_name'),
+                                          col('data_event_engineProgram').alias('engine_program')).distinct()
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
 ####################################################
 import pytest
 from pyspark.sql import SparkSession
