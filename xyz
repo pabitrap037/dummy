@@ -1,3 +1,103 @@
+from pyspark.sql import functions as F
+from pprint import pprint
+import pandas as pd
+from pyspark.sql.functions import monotonically_increasing_id
+
+def preprocess_validations_pwi_api_to_raw(df_validations_api_to_raw):
+    exclude_files_dict_api_to_raw = {'reason': [], 'value': []}
+    exclude_index_list_api_to_raw = []
+
+
+    for row in df_validations_api_to_raw.collect():
+        if row['inspection.uuid'] is None:
+            exclude_files_dict_api_to_raw['reason'].append('inspection.uuid value is null')
+            exclude_files_dict_api_to_raw['value'].append(row.asDict())
+            exclude_index_list_api_to_raw.append(row['index'])
+
+        if row['obs.uuid'] is None:
+            exclude_files_dict_api_to_raw['reason'].append('obs.uuid value is null')
+            exclude_files_dict_api_to_raw['value'].append(row.asDict())
+            exclude_index_list_api_to_raw.append(row['index'])
+        
+        if row['inspection.partNumber'] is None:
+            exclude_files_dict_api_to_raw['reason'].append('inspection.partNumber value is null')
+            exclude_files_dict_api_to_raw['value'].append(row.asDict())
+            exclude_index_list_api_to_raw.append(row['index'])
+        
+        if row['inspection.partSerialNumber'] is None:
+            exclude_files_dict_api_to_raw['reason'].append('inspection.partSerialNumber is null')
+            exclude_files_dict_api_to_raw['value'].append(row.asDict())
+            exclude_index_list_api_to_raw.append(row['index'])
+        
+        if row['inspection.engineSerialNumber'] is None:
+            exclude_files_dict_api_to_raw['reason'].append('inspection.engineSerialNumber is null')
+            exclude_files_dict_api_to_raw['value'].append(row.asDict())
+            exclude_index_list_api_to_raw.append(row['index'])
+        
+        if row['obs.servicableLimit'] is None:
+            exclude_files_dict_api_to_raw['reason'].append('obs.servicableLimit value is null')
+            exclude_files_dict_api_to_raw['value'].append(row.asDict())
+            
+        if row['attribute.name'] is None:
+            exclude_files_dict_api_to_raw['reason'].append('attribute.name value is null')
+            exclude_files_dict_api_to_raw['value'].append(row.asDict())
+
+    df_validations_api_to_raw = df_validations_api_to_raw.filter(~df_validations_api_to_raw['index'].isin(exclude_index_list_api_to_raw))
+
+    return exclude_files_dict_api_to_raw, df_validations_api_to_raw
+
+def preprocess_validations_pwi_raw_to_curated(df_validations_raw_to_curated):
+    exclude_files_dict_raw_to_curated = {'reason': [], 'value': []}
+    exclude_index_list_raw_to_curated = []
+
+    for row in df_validations_raw_to_curated.collect():
+        if row['defects.disposition'] is None:
+            exclude_files_dict_raw_to_curated['reason'].append('defects.disposition value is null')
+            exclude_files_dict_raw_to_curated['value'].append(row.asDict())
+            exclude_index_list_raw_to_curated.append(row['index'])
+
+        if row['defects.indication_type'] is None:
+            exclude_files_dict_raw_to_curated['reason'].append('defects.indication_type value is null')
+            exclude_files_dict_raw_to_curated['value'].append(row.asDict())
+            exclude_index_list_raw_to_curated.append(row['index'])
+        
+        if row['operation_code'] is None:
+            exclude_files_dict_raw_to_curated['reason'].append('operation_code value is null')
+            exclude_files_dict_raw_to_curated['value'].append(row.asDict())
+        
+    df_validations_raw_to_curated = df_validations_raw_to_curated.filter(~df_validations_raw_to_curated['index'].isin(exclude_index_list_raw_to_curated))
+
+    return exclude_index_list_raw_to_curated, df_validations_raw_to_curated
+
+
+
+json_data = [
+    {"inspection.uuid": "abc111", "obs.uuid": "123","inspection.partNumber":"333part","inspection.partSerialNumber":"2222",
+     "inspection.engineSerialNumber":"333","obs.servicableLimit":"1235obs","attribute.name":None},
+    {"inspection.uuid": "abc222", "obs.uuid": "123","inspection.partNumber":"1111","inspection.partSerialNumber":"2222",
+     "inspection.engineSerialNumber":"333","obs.servicableLimit":None,"attribute.name":"123name"},
+    {"inspection.uuid": "abc333", "obs.uuid": "123","inspection.partNumber":"1111","inspection.partSerialNumber":"2222",
+     "inspection.engineSerialNumber":"333","obs.servicableLimit":"1235obs","attribute.name":"123name"},
+    {"inspection.uuid": "xyz444", "obs.uuid": "1233","inspection.partNumber":"prt111","inspection.partSerialNumber":"2222",
+     "inspection.engineSerialNumber":None,"obs.servicableLimit":"1235obs","attribute.name":"123name"},
+    {"inspection.uuid": "abc555", "obs.uuid": "123","inspection.partNumber":"1111","inspection.partSerialNumber":"2222",
+     "inspection.engineSerialNumber":"333","obs.servicableLimit":"1235obs","attribute.name":"123name"},
+    {"inspection.uuid": "abc666", "obs.uuid": "123","inspection.partNumber":None,"inspection.partSerialNumber":"2222",
+     "inspection.engineSerialNumber":None,"obs.servicableLimit":"1235obs","attribute.name":"123name"},
+]
+df = spark.createDataFrame(json_data)
+df_set_index = df.withColumn('index',monotonically_increasing_id())
+display(df_set_index)
+exclude_files_dict, df_validations = preprocess_validations_pwi_api_to_raw(df_set_index)
+
+print("Excluded data:")
+exclude_files_dict = pd.DataFrame(exclude_files_dict)
+exclude_files_dict_final = spark.createDataFrame(exclude_files_dict)
+display(exclude_files_dict_final)
+print("\nDataFrame after dropping rows:")
+display(df_validations)
+
+#################################################################################
 import pandas as pd
 
 # Mock data in JSON format
