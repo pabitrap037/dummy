@@ -1,3 +1,407 @@
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col
+
+###########################################
+
+@pytest.fixture
+def mock_data():
+    dictionary = {'event_id':'111111',
+    'event_name':'new_event',
+    'engineProgram':'engine_new',
+    'data_inspection_uuid':'111-uuid',
+    'data_inspection_createdAt':'11/10/2023',
+    'data_inspection_name':'dummy_inspection_name',
+    'data_inspection_template_techData_id':'dummmy_description',
+    'data_inspection_part_partNumber':'1122334455',
+    'data_inspection_part_serialNumber':'SN1234567',
+    'data_inspection_part_batchNumber':'BN12345',
+    'data_inspection_part_tac':'tac1234',
+    'data_inspection_part_eot':'eot1234',
+    'data_inspection_part_efh':'efh1234',
+    'data_inspection_part_cso':'cso1234',
+    'data_inspection_part_tso':'tso1234',
+    'data_inspection_part_engineModel':'dummy_model',
+    'data_inspection_part_engineSerialNumber':'ESN12345',
+    'data_inspection_disposition_name':'dummy_disposition',
+    'data_observation_uuid':'222-uuid',
+    'data_observation_areaPath':'dummy_areaPath',
+    'data_observation_attributes_type':'dummy',
+    'data_observation_adHocArea':'',
+    'data_observation_conditionName':'',
+    'data_observation_standardConditionName':'',
+    'data_observation_disposition':'',
+    'data_observation_noneObserved':'',
+    'data_observation_servicableLimit':'',
+    'data_observation_repairableLimit':'',
+    'data_observation_attributes_name':'',
+    'data_observation_attributes_value':'',       
+    'data_observation_attributes_adHoc':''
+
+    }
+    mock_data_df = spark.createDataFrame([dictionary])
+    mock_data_df.createOrReplaceTempView("raw_table")
+
+
+
+
+#write the input and output here
+
+
+
+###########################################
+def function_event_raw_to_curated(raw_table):
+    df_event = spark.sql(f"""
+        select distinct(data_event_id) as event_id,
+            data_event_name as event_name,
+            data_event_engineProgram as engine_program
+        from {raw_table}
+    """)
+    return df_event
+
+###########################################
+def test_event_raw_to_curated(mock_data):
+    output_df = function_event_raw_to_curated("raw_table")
+
+    expected_df = mock_data.select(col('data_inspection_uuid').alias('event_id'),
+                                   col('data_event_name').alias('event_name'),
+                                   col('data_event_engineProgram').alias('engine_program')).distinct()
+
+    # Assuming you want to compare the data, you can convert the DataFrames to Pandas and compare
+    assert output_df.toPandas().equals(expected_df.toPandas())
+
+def function_inspection_raw_to_curated(mock_data):
+    output_df = spark.sql(f"""
+        select distinct(data_inspection_uuid) as insp_uuid,
+            data_inspection_createdAt as insp_timestamp,
+            data_inspection_name as insp_name,
+            data_inspection_template_techData_id as insp_description,
+            data_inspection_part_partNumber as insp_part_number,
+            trim(data_inspection_part_serialNumber) as insp_serial_number,
+            data_inspection_part_batchNumber as insp_batch_number,
+            data_inspection_part_tac as insp_part_tac,
+            data_inspection_part_eot as insp_part_eot,
+            data_inspection_part_efh as insp_part_efh,
+            data_inspection_part_cso as insp_part_cso,
+            data_inspection_part_tso as insp_part_tso,
+            data_inspection_part_engineModel as insp_engine_model,
+            trim(data_inspection_part_engineSerialNumber) as insp_engine_serial_number,
+            data_inspection_disposition_name as insp_disposition_name
+        from {raw_table}
+    """)
+
+    return output_df
+
+
+
+# def function_timestamp_inspection_raw_to_curated(mock_data):
+#     output_df = df_mock_data.withColumn("insp_timestamp",F.to_timestamp("insp_timestamp", "M/d[d]/yyyy H[H]:mm")) \
+#         .withColumn("load_timeStamp", F.current_timestamp()) \
+#         .withColumn("processed", F.lit(False))
+
+#     expected_df =spark.sql(f"""
+#         select *,
+#         TO_TIMESTAMP(insp_timestamp,'MM/DD/YYYY HH24:MI') as insp_timestamp,
+#         CURRENT_TIMESTAMP() AS load_timstamp,False as processed
+#         from raw_table
+#     """) 
+    
+def test_inspection_raw_to_curated(mock_data):
+    output_df = function_one_of_inspection_raw_to_curated()
+
+    expected_df = mock_data_df.select(col('data_inspection_uuid').alias('insp_uuid')/
+    ,col('data_inspection_name').alias('insp_name')/
+    ,col('data_inspection_template_techData_id').alias('insp_description')/
+    ,col('data_inspection_part_partNumber').alias('insp_part_number')/
+    ,trim(col('data_inspection_part_serialNumber')).alias('insp_serial_number')/
+    ,col('data_inspection_part_batchNumber').alias('insp_batch_number')
+    ,col('data_inspection_part_tac').alias('insp_part_tac')/
+    ,col('data_inspection_part_eot').alias('insp_part_eot')/
+    ,col('data_inspection_part_cso').alias('insp_part_cso')/
+    ,col('data_inspection_part_tso').alias('insp_part_tso')/
+    ,col('data_inspection_part_engineModel').alias('insp_engine_model')/
+    ,trim(col('data_inspection_part_engineSerialNumber')).alias('insp_engine_serial_number')/
+    ,col('data_inspection_disposition_name').alias('insp_disposition_name').distinct()
+    )
+    assert output_df == expected_df
+    #function_two_of_inspection_raw_to_curated(mock_data)
+    return 'Inspection Raw to Curated Function Passed'
+
+
+
+############################################    
+def function_observation_raw_to_curated(mock_data):
+    output_df = spark.sql(f"""
+        select distinct data_observation_uuid as obs_uuid,
+            data_observation_areaPath as obs_distress_name,
+            data_observation_attributes_type as obs_type,
+            data_observation_adHocArea as obs_adHocArea,
+            data_observation_conditionName as obs_condition_name,
+            data_observation_standardConditionName as obs_condition_standard_name,
+            data_observation_disposition as obs_disposition_type,
+            data_observation_noneObserved as obs_none_observed,
+            data_observation_servicableLimit as obs_serviceable_limit_description,
+            data_observation_repairableLimit as obs_repairable_limit_description
+        from {raw_table}
+    """)
+    return output_df
+
+
+def test_observation_raw_to_curated(mock_data):
+    output_df=function_observation_raw_to_curated(mock_data)
+
+    expected_df= mock_data_df.select(col('data_observation_uuid').alias('obs_uuid')/
+    ,col('data_observation_areaPath').alias('obs_distress_name')/
+    ,col('data_observation_attributes_type').alias('obs_type')/
+    ,col('data_observation_adHocArea').alias('obs_adHocArea')/
+    ,col('data_observation_conditionName').alias('obs_condition_name')
+    ,col('data_observation_standardConditionName').alias('obs_condition_standard_name')/
+    ,col('data_observation_disposition').alias('obs_disposition_type')/
+    ,col('data_observation_noneObserved').alias('obs_none_observed')/
+    ,col('data_observation_servicableLimit').alias('obs_serviceable_limit_description')/
+    ,col('data_inspection_part_engineModel').alias('insp_engine_model')/
+    ,col('data_observation_repairableLimit').alias('obs_repairable_limit_description').distinct()
+    )
+    return 'Observation Raw to Curated Function Passed'
+    
+
+@pytest.fixture
+def mock_data_attribute():
+    dictionary_attribute_input = {
+        'data_observation_uuid':['0rf3h574-234i-x439-4hdc8dfkls87','r1f3h574-10x4-x439-4hdc8djfhy13','hdf1sd5y-se89-1m4n-9dja9ce8u4hu'],
+        'data_observation_attributes_name':['radius','comment',None],
+        'data_observation_attributes_value':['0.323','Noticed tear on contract face',None],
+        'data_observation_attributes_adHoc': [None,None,None]
+    }
+    df_input = spark.createDataframe([dictionary_attribute_input])
+    df_input.createOrReplaceTempView('raw_table_attribute')
+    dictionary_attribute_expected = {
+        'observation_uuid':['0rf3h574-234i-x439-4hdc8dfkls87','r1f3h574-10x4-x439-4hdc8djfhy13','hdf1sd5y-se89-1m4n-9dja9ce8u4hu'],
+        'attributes_name':['radius','comment',None],
+        'value':['0.323',None,None],
+        'comment':[None,'Noticed tear on contract face',None]
+    }
+    expected_df = spark.createDataframe([dictionary_attribute_expected])
+
+def function_attribute_raw_to_curated(mock_data_attribute):
+    # The following query returns duplicate records without the group by all columns clause
+    df_attribute = spark.sql(f"""
+        select  data_observation_uuid as observation_uuid,
+            data_observation_attributes_name as attribute_name,
+            case
+                when data_observation_attributes_value regexp '^[0-9]*\.?[0-9]+?' then data_observation_attributes_value
+                else none
+            end as value,
+            case   
+                when data_observation_attributes_value regexp '^[0-9]*\.?[0-9]+?' then null
+                else data_observation_attributes_value
+            end as comment,
+            data_observation_attributes_adHoc as attribute_ad_hoc
+        from {raw_table_attribute}
+        group by observation_uuid,
+            attribute_name,
+            value,
+            comment,
+            attribute_ad_hoc
+    """)
+    return df_attribute
+
+
+def test_attribute_raw_to_curated(mock_data_attribute):
+    output_df = function_attribute_raw_to_curated(df_input)
+    assert output_df.toPandas().equals(expected_df.toPandas())
+
+######################################################################
+# @pytest.fixture
+# def mock_data_limit():
+#     min_max_udf = F.udf(lambda x: extract_min_max(x), StringType())
+#     #need to write input and expected data for testing function_one_of_limit_raw_to_curated
+#     input_df_funtion_one = 
+#     expected_df_function_one = 
+#     output_df_function_one = function_one_of_limit_raw_to_curated(input_df_funtion_one)
+#     assert expected_df_function_one == output_df_function_one
+
+#     #need to write input and expected data for testing function_two_of_limit_raw_to_curated
+#     input_df_funtion_two =  
+#     expected_df_function_two = 
+#     output_df_function_two = function_two_of_limit_raw_to_curated(input_df_funtion_two)
+#     assert expected_df_function_two == output_df_function_two
+
+#     #need to write input and expected data for testing function_two_of_limit_raw_to_curated
+#     input_df_funtion_three = 
+#     expected_df_function_three =
+#     output_df_function_three = function_three_of_limit_raw_to_curated(input_df_funtion_three)
+#     assert expected_df_function_three == output_df_function_three
+
+@pytest.fixture
+def mock_data_limit():
+    dictionary_attribute_input = {
+        'data_observation_areaPath':['/ADJUNCT SERVICES','/[3] INNER DIAMETER LOOP','/[11] UNDERRISE OF COOLING HOSE','/ANOTHER SERVICES'],
+        'data_observation_conditionName':['SHARK HEDGES','NACKS','CRAZED MATERIAL','SCRAPES'],
+        'data_inspection_createdAt':['2023-01-04-t21:58:17.461Z','2023-01-10-t35:37:18:501Z','2023-01-10-t35:37:18:501Z','2023-01-04-t21:58:17.461Z'],
+        'data_observation_servicableLimit': ['Not remitted','0.89 inch (23.354 mm) maximum and radius must be minimum of .454 inch (16.234 mm)','1.445 - 1.983 inch (4.320 - 6.322 mm)','0.039 inch (2.402 mm) minimum']
+    }
+    df_input = spark.createDataframe([dictionary_attribute_input])
+    df_input.createOrReplaceTempView('raw_table_limit')
+    dictionary_attribute_expected = {
+        'lim_distress_name':['/ADJUNCT SERVICES','/[3] INNER DIAMETER LOOP','/[11] UNDERRISE OF COOLING HOSE','/ANOTHER SERVICES'],
+        'lim_condition_name':['SHARK HEDGES','NACKS','CRAZED MATERIAL','SCRAPES'],
+        'lim_minimum':[None,None,1.445,0.039],
+        'lim_maximum':[None,0.897,1.983,None],
+        'lim_date_changed':['2023-01-04-t21:58:17.461Z','2023-01-10-t35:37:18:501Z','2023-01-10-t35:37:18:501Z','2023-01-04-t21:58:17.461Z'],
+        'lim_comment':['Not remitted','0.897 inch (23.354 mm) maximum depth is remitted','1.445 - 1.983 inch (4.320 - 6.322 mm)','0.039 inch (2.402 mm) minimum']
+    }
+    expected_df = spark.createDataframe([dictionary_attribute_expected])
+        
+
+def extract_min_max(limit: str):
+    _max = "null"
+    _min = "null"
+    regex = u"([0-9]+\.[0-9]+)\s+inch"
+    try:
+        limits = re.findall(regex, limit)
+    except TypeError:
+        return
+    
+    limit = limit.lower()
+    if "maximum" not in limit and "no longer than" not in limit:
+        regex = u"([0-9]+\.[0-9]+)(?:\s*-\s*([0-9]+\.[0-9]+))?\s+inch"
+        limits = re.findall(regex, limit)
+        try:
+            _min = limits[0][0]
+            _max = limits[0][1]
+        except IndexError:
+            pass
+
+    else:
+        _max = limits[0]
+        if "minimum" in limit:
+            _min = limits[1]
+    return f"{_min}, {_max}"
+##################################################
+def function_one_of_limit_raw_to_curated():
+    df_limits = spark.sql("""
+        with latest_inspection as (
+            select
+                data_observation_areaPath,
+                data_observation_conditionName,
+                max(data_inspection_createdAt::timestamp) as latest_insp
+            from pwi_raw.initial_10_17
+            group by 1, 2
+        ),
+
+        full_table_latest_inspection as (
+            -- join cte back to raw table in order to find the servicable limit with an inspection date that matches the latest
+            select
+                raw.data_observation_areaPath as lim_distress_name,
+                raw.data_observation_conditionName as lim_condition_name,
+                raw.data_inspection_createdAt::timestamp as lim_date_changed,
+                raw.data_observation_servicableLimit as lim_comment
+            from pwi_raw.initial_10_17 as raw
+            left join latest_inspection
+                on raw.data_observation_areaPath = latest_inspection.data_observation_areaPath
+                and raw.data_observation_conditionName = latest_inspection.data_observation_conditionName
+            where raw.data_inspection_createdAt::timestamp = latest_inspection.latest_insp
+            group by
+                lim_distress_name,
+                lim_condition_name,
+                lim_date_changed,
+                lim_comment
+        ),
+
+        limits_w_count as (
+            -- add a count of limits (i.e. count of different lim_comment values) per lim_distress_name/lim_condition_name/lim_date_changed combination
+            select lim_distress_name,
+            lim_condition_name,
+            lim_date_changed,
+            lim_comment,
+            count(*) over (partition by lim_distress_name, lim_condition_name, lim_date_changed order by lim_distress_name) as limit_count
+            from full_table_latest_inspection
+        )
+
+        -- for conflicting servicable limits (identified by having limit_count > 1), exclude those with value of 'not permitted'; this resolves most limit conflicts
+        select
+            lim_distress_name,
+            lim_condition_name,
+            lim_date_changed,
+            lim_comment
+        from limits_w_count
+        where limit_count = 1 or (
+            limit_count > 1 and lower(lim_comment) != 'not permitted'
+        )
+        order by limit_count desc, lim_distress_name, lim_condition_name
+    """)
+    return df_limits
+
+def function_two_of_limit_raw_to_curated():
+    df_limits = df_limits.withColumn("min_max", min_max_udf(F.col("lim_comment")))
+    split_col = F.split(df_limits["min_max"], ", ")
+    df_limits = df_limits.withColumn(
+            "lim_minimum",
+            F.when(split_col.getItem(0) == "null", None) \
+                .otherwise(split_col.getItem(0)) \
+                    .cast(FloatType())
+    ) \
+        .withColumn(
+            "lim_maximum",
+        F.when(split_col.getItem(1) == "null", None) \
+            .otherwise(split_col.getItem(1)) \
+                    .cast(FloatType())
+        )
+    return df_limits
+
+def function_three_of_limit_raw_to_curated():
+    df_limits = df_limits.select(
+        "lim_distress_name",
+        "lim_condition_name",
+        "lim_minimum",
+        "lim_maximum",
+        "lim_date_changed",
+        "lim_comment"
+    )
+
+    #df_limits still contains a few conflicting limits, 
+    # so we select the lowest lim_minimum value per lim_distress_name/lim_condition_name/lim_date_changed combination and choose the record with the matching lim_minimum
+    
+    window_spec = Window.partitionBy(
+        "lim_distress_name",
+        "lim_condition_name",
+        "lim_date_changed"
+    ).orderBy("lim_distress_name")
+
+    df_limits = df_limits.withColumn("min_minimum", F.min("lim_minimum").over(window_spec))
+
+    df_filtered = df_limits.filter((F.col("lim_minimum").isNull()) | (F.col("lim_minimum") == F.col("min_minimum")))
+
+    #in at least one case, two conflicting servicable limits have the same lim_min and lim_max values; in such cases, we simply pick the first
+
+    window_spec_1 = Window.partitionBy(
+        "lim_distress_name",
+        "lim_condition_name",
+        "lim_date_changed"
+    ).orderBy("lim_date_changed")
+
+    df_filtered = df_filtered.withColumn("row_num", F.row_number().over(window_spec_1))
+    df_filtered = df_filtered.filter(F.col("row_num") == 1).drop("row_num")
+    return df_filtered
+
+def test_limit_raw_to_curated():
+
+    input_string = "10.451 - 12.059 inches (345.534  - 423.454 mm)"
+    expected_string = '10.451, 12.059'
+    output_string = extract_min_max(input_string)
+    assert output_string == expected_string
+
+    
+
+
+
+    
+
+
+
+##############################################################
 [12:06 PM] Lalit Avinash Bopalkar
 %sql
 create view if not exists gurit_da.silver_scada_sqlt_data_v as
