@@ -1,3 +1,36 @@
+[12:06 PM] Lalit Avinash Bopalkar
+%sql
+create view if not exists gurit_da.silver_scada_sqlt_data_v as
+select /*+ RANGE_JOIN(SourceTable, 10) */ *
+  from
+(
+SELECT cast(dateadd(MINUTE,
+                       330,
+                       dateadd(second,
+                cast(d.t_stamp as bigint)
+                /1000,
+                TIMESTAMP'1970-01-01 00:00:00'
+                ))
+                      as timestamp) as TimeStamp
+    ,case when d.intvalue is not null then cast(d.intvalue as varchar(100))
+          when d.floatvalue is not null then cast(d.floatvalue as varchar(100))
+          when d.stringvalue is not null then cast(d.stringvalue as varchar(100))
+          when d.datevalue is not null then cast(d.datevalue as varchar(100))
+      end as value
+    ,left(m.tagpath, charindex('/', m.tagpath) - 1) as extruder_line
+    ,substring(m.tagpath,charindex('/', m.tagpath)+1,len(m.tagpath)-charindex('/', m.tagpath)) as parameter
+    ,d.Pipeline_run_id
+  FROM gurit_da.raw_scada_sqlt_data_d_yyyy_mm d
+  inner join gurit_da.raw_scada_sqlth_te m on d.tagid=m.id
+) as SourceTable
+left join (
+   select min(DateTime) as StartTime,
+        max(DateTime) as EndTime,
+        cast(BatchNo as varchar(100)) as Batch,
+        cast(concat('Kerdyn Green ',NominalDensity) as varchar(100)) as Product
+    FROM gurit_da.silver_scada_extruder_manual_data
+    group by cast(BatchNo as varchar(100)),cast(concat('Kerdyn Green ',NominalDensity) as varchar(100))  
+) BatchPeriods on SourceTable.TimeStamp between BatchPeriods.StartTime and BatchPeriods.EndTime
 ###############################################################
 import tracemalloc
 import unittest
