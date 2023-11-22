@@ -1,3 +1,166 @@
+import warnings
+import unittest
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col
+
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="distutils")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pyarrow")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pyspark/sql/pandas/utils.py")
+
+
+
+class UnitTestFunctions(unittest.TestCase):
+
+    def mock_data(self):
+        dictionary = {'event_id': '111111',
+                      'event_name': 'new_event',
+                      'engine_program': 'engine_new',
+                      'data_inspection_uuid': '111-uuid',
+                      'data_inspection_createdAt': '11/10/2023',
+                      'data_inspection_name':'dummy_inspection_name',
+                      'data_inspection_template_techData_id':'dummmy_description',
+                      'data_inspection_part_partNumber':'1122334455',
+                      'data_inspection_part_serialNumber':'SN1234567',
+                      'data_inspection_part_batchNumber':'BN12345',
+                      'data_inspection_part_tac':'tac1234',
+                      'data_inspection_part_eot':'eot1234',
+                      'data_inspection_part_efh':'efh1234',
+                      'data_inspection_part_cso':'cso1234',
+                      'data_inspection_part_tso':'tso1234',
+                      'data_inspection_part_engineModel':'dummy_model',
+                      'data_inspection_part_engineSerialNumber':'ESN12345',
+                      'data_inspection_disposition_name':'dummy_disposition',
+                      'data_observation_uuid':'222-uuid',
+                      'data_observation_areaPath':'dummy_areaPath',
+                      'data_observation_attributes_type':'dummy',
+                      'data_observation_adHocArea':'',
+                      'data_observation_conditionName':'',
+                      'data_observation_standardConditionName':'',
+                      'data_observation_disposition':'',
+                      'data_observation_noneObserved':'',
+                      'data_observation_servicableLimit':'',
+                      'data_observation_repairableLimit':'',
+                      'data_observation_attributes_name':'',
+                      'data_observation_attributes_value':'',       
+                      'data_observation_attributes_adHoc':''
+                      }
+        mock_data_df = spark.createDataFrame([dictionary])
+        mock_data_df.createOrReplaceTempView("raw_table")
+        return mock_data_df
+
+    def function_event_raw_to_curated(self, raw_table):
+        df_event = spark.sql(f"""
+            select distinct(event_id),
+                event_name,
+                engine_program
+            from {raw_table}
+        """)
+        return df_event
+    
+    def test_event_raw_to_curated(self):
+        mock_df = self.mock_data()
+        output_df = self.function_event_raw_to_curated("raw_table")
+        #display(output_df)
+        expected_df = mock_df.select(col('event_id'),
+                                     col('event_name'),
+                                     col('engine_program')).distinct()
+        #display(expected_df)
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+    def function_inspection_raw_to_curated(self, raw_table):
+        output_df = spark.sql(f"""
+            select distinct(data_inspection_uuid) as insp_uuid,
+                data_inspection_createdAt as insp_timestamp,
+                data_inspection_name as insp_name,
+                data_inspection_template_techData_id as insp_description,
+                data_inspection_part_partNumber as insp_part_number,
+                data_inspection_part_serialNumber as insp_serial_number,
+                data_inspection_part_batchNumber as insp_batch_number,
+                data_inspection_part_tac as insp_part_tac,
+                data_inspection_part_eot as insp_part_eot,
+                data_inspection_part_efh as insp_part_efh,
+                data_inspection_part_cso as insp_part_cso,
+                data_inspection_part_tso as insp_part_tso,
+                data_inspection_part_engineModel as insp_engine_model,
+                data_inspection_part_engineSerialNumber as insp_engine_serial_number,
+                data_inspection_disposition_name as insp_disposition_name
+            from {raw_table}
+        """)
+
+        return output_df
+
+    def test_inspection_raw_to_curated(self):
+        mock_data = self.mock_data()
+        output_df = self.function_inspection_raw_to_curated("raw_table")
+        #display(output_df)
+
+        expected_df = mock_data.select(
+            col('data_inspection_uuid').alias('insp_uuid'),
+            col('data_inspection_createdAt').alias('insp_timestamp'),
+            col('data_inspection_name').alias('insp_name'),
+            col('data_inspection_template_techData_id').alias('insp_description'),
+            col('data_inspection_part_partNumber').alias('insp_part_number'),
+            col('data_inspection_part_serialNumber').alias('insp_serial_number'),
+            col('data_inspection_part_batchNumber').alias('insp_batch_number'),
+            col('data_inspection_part_tac').alias('insp_part_tac'),
+            col('data_inspection_part_eot').alias('insp_part_eot'),
+            col('data_inspection_part_efh').alias('insp_part_efh'),
+            col('data_inspection_part_cso').alias('insp_part_cso'),
+            col('data_inspection_part_tso').alias('insp_part_tso'),
+            col('data_inspection_part_engineModel').alias('insp_engine_model'),
+            col('data_inspection_part_engineSerialNumber').alias('insp_engine_serial_number'),
+            col('data_inspection_disposition_name').alias('insp_disposition_name')).distinct()
+        #display(expected_df)
+        
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+    
+    def function_observation_raw_to_curated(self, raw_table):
+        output_df = spark.sql(f"""
+            select distinct data_observation_uuid as obs_uuid,
+                data_observation_areaPath as obs_distress_name,
+                data_observation_attributes_type as obs_type,
+                data_observation_adHocArea as obs_adHocArea,
+                data_observation_conditionName as obs_condition_name,
+                data_observation_standardConditionName as obs_condition_standard_name,
+                data_observation_disposition as obs_disposition_type,
+                data_observation_noneObserved as obs_none_observed,
+                data_observation_servicableLimit as obs_serviceable_limit_description,
+                data_observation_repairableLimit as obs_repairable_limit_description
+            from {raw_table}
+        """)
+        return output_df
+
+    def test_observation_raw_to_curated(self):
+        mock_data = self.mock_data()
+        output_df = self.function_observation_raw_to_curated("raw_table")
+        #display(output_df)
+
+        expected_df = mock_data.select(
+            col('data_observation_uuid').alias('obs_uuid'),
+            col('data_observation_areaPath').alias('obs_distress_name'),
+            col('data_observation_attributes_type').alias('obs_type'),
+            col('data_observation_adHocArea').alias('obs_adHocArea'),
+            col('data_observation_conditionName').alias('obs_condition_name'),
+            col('data_observation_standardConditionName').alias('obs_condition_standard_name'),
+            col('data_observation_disposition').alias('obs_disposition_type'),
+            col('data_observation_noneObserved').alias('obs_none_observed'),
+            col('data_observation_servicableLimit').alias('obs_serviceable_limit_description'),
+            col('data_observation_repairableLimit').alias('obs_repairable_limit_description'))
+        
+        #display(expected_df)
+        
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+warnings.resetwarnings()
+#######################################################******************************************88
+
+
+
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
