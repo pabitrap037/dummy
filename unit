@@ -1,3 +1,23 @@
+
+def mock_data_limit():
+    dictionary_attribute_input = {
+        'data_observation_areaPath':['/ADJUNCT SERVICES','/[3] INNER DIAMETER LOOP','/[11] UNDERRISE OF COOLING HOSE','/ANOTHER SERVICES'],
+        'data_observation_conditionName':['SHARK HEDGES','NACKS','CRAZED MATERIAL','SCRAPES'],
+        'data_inspection_createdAt':['2023-01-04-t21:58:17.461Z','2023-01-10-t35:37:18:501Z','2023-01-10-t35:37:18:501Z','2023-01-04-t21:58:17.461Z'],
+        'data_observation_servicableLimit': ['Not remitted','0.89 inch (23.354 mm) maximum and radius must be minimum of .454 inch (16.234 mm)','1.445 - 1.983 inch (4.320 - 6.322 mm)','0.039 inch (2.402 mm) minimum']
+    }
+    df_input = spark.createDataframe([dictionary_attribute_input])
+    df_input.createOrReplaceTempView('raw_table_limit')
+    dictionary_attribute_expected = {
+        'lim_distress_name':['/ADJUNCT SERVICES','/[3] INNER DIAMETER LOOP','/[11] UNDERRISE OF COOLING HOSE','/ANOTHER SERVICES'],
+        'lim_condition_name':['SHARK HEDGES','NACKS','CRAZED MATERIAL','SCRAPES'],
+        'lim_minimum':[None,None,1.445,0.039],
+        'lim_maximum':[None,0.897,1.983,None],
+        'lim_date_changed':['2023-01-04-t21:58:17.461Z','2023-01-10-t35:37:18:501Z','2023-01-10-t35:37:18:501Z','2023-01-04-t21:58:17.461Z'],
+        'lim_comment':['Not remitted','0.897 inch (23.354 mm) maximum depth is remitted','1.445 - 1.983 inch (4.320 - 6.322 mm)','0.039 inch (2.402 mm) minimum']
+    }
+    expected_df = spark.createDataframe([dictionary_attribute_expected])
+############################################3
 def mock_data_attribute():
     dictionary_attribute_input = {
         'data_observation_uuid':['0rf3h574-234i-x439-4hdc8dfkls87','r1f3h574-10x4-x439-4hdc8djfhy13','hdf1sd5y-se89-1m4n-9dja9ce8u4hu'],
