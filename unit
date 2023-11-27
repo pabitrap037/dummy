@@ -1,3 +1,23 @@
+def mock_data_attribute():
+    dictionary_attribute_input = {
+        'data_observation_uuid':['0rf3h574-234i-x439-4hdc8dfkls87','r1f3h574-10x4-x439-4hdc8djfhy13','hdf1sd5y-se89-1m4n-9dja9ce8u4hu'],
+        'data_observation_attributes_name':['radius','comment',None],
+        'data_observation_attributes_value':['0.323','Noticed tear on contract face',None],
+        'data_observation_attributes_adHoc': [None,None,None]
+    }
+    df_input = spark.createDataframe([dictionary_attribute_input])
+    df_input.createOrReplaceTempView('raw_table_attribute')
+    dictionary_attribute_expected = {
+        'observation_uuid':['0rf3h574-234i-x439-4hdc8dfkls87','r1f3h574-10x4-x439-4hdc8djfhy13','hdf1sd5y-se89-1m4n-9dja9ce8u4hu'],
+        'attributes_name':['radius','comment',None],
+        'value':['0.323',None,None],
+        'comment':[None,'Noticed tear on contract face',None]
+    }
+    expected_df = spark.createDataframe([dictionary_attribute_expected])
+
+
+
+
 # Databricks notebook sourcefrom pyspark.sql import DataFrame, functions as F
 from pyspark.sql.types import StringType, FloatType
 from pyspark.sql.window import Window
