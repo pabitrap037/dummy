@@ -1,3 +1,53 @@
+import pandas as pd
+json_data = [
+    {"inspection_uuid": "abc123", "obs_uuid": "123"},
+    {"inspection_uuid": None, "obs_uuid": "456"},
+    {"inspection_uuid": "ghi789", "obs_uuid": None},
+    {"inspection_uuid": None, "obs_uuid": "2111"},
+    {"inspection_uuid": "ert23", "obs_uuid": None},
+    {"inspection_uuid": "gssaa", "obs_uuid": None},
+    {"inspection_uuid": None, "obs_uuid": None},
+    {"inspection_uuid": "adsd89", "obs_uuid": None}
+]
+
+df = spark.createDataFrame(json_data)
+#display(df)
+
+def preprocess_validation_pwi(df_validations):
+    exclude_files_dict = {"reason": [], "value": []}
+
+    columns_to_check_and_exclude = ["inspection_uuid", "obs_uuid", "inspection_partNumber", "inspection_partserialNumber", "inspection_engineSerialNumber", "observation_areaPath"]
+
+    for column in columns_to_check_and_exclude:
+        #print(column)
+        null_rows = df_validations.filter(col(column).isNull())
+        for row in null_rows.rdd.collect():
+            exclude_files_dict["reason"].append(f"{column} value is Null")
+            exclude_files_dict["value"].append(row.asDict())
+
+    df_without_nulls = df_validations.filter((col("inspection_uuid").isNotNull()) & (col("obs_uuid").isNotNull()) 
+                                             & (col("inspection_partNumber").isNotNull()) & (col("inspection_partserialNumber").isNotNull())
+                                             & (col("inspection_engineSerialNumber").isNotNull()) & (col("observation_areaPath").isNotNull()))
+    
+    columns_to_check_and_include = ["observation_servicableLimit", "attribite_name"]
+
+    for column in columns_to_check_and_include:
+        null_rows = df_validations.filter(col(column).isNull())
+        for row in null_rows.rdd.collect():
+            exclude_files_dict["reason"].append(f"{column} value is Null")
+            exclude_files_dict["value"].append(row.asDict())
+    print(df_without_nulls)
+
+    return exclude_files_dict#,df_without_nulls
+
+exclude_files_dict, df_without_nulls = preprocess_validation_pwi(df)
+#display(spark.createDataFrame(exclude_files_dict))
+#print("Exclude Files Dictionary:")
+#print(exclude_files_dict)
+display(pd.DataFrame(exclude_files_dict))
+#after this we can load the dataframe having without null value
+display(df_without_nulls)
+################################################################################
 from pyspark.sql import functions as F
 from pprint import pprint
 import pandas as pd
