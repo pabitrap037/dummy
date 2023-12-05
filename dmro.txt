@@ -1,3 +1,64 @@
+import pandas as pd
+json_data = [
+    {
+        "inspection.uuid": "abc123",
+        "obs.uuid": "123"
+    },
+    {
+        "inspection.uuid": None,
+        "obs.uuid": "456"
+    },
+    {
+        "inspection.uuid": "ghi789",
+        "obs.uuid": None
+    }
+]
+
+df = pd.DataFrame(json_data)
+
+def preprocess_validation_ppi(df_validations):
+    exclude_files_dict = {'reason': [], 'value': []}
+
+    for index, row in df_validations.iterrows():
+        if pd.isnull(row['inspection.uuid']):
+            exclude_files_dict['reason'].append('inspection.uuid value is Null')
+            exclude_files_dict['value'].append(row.to_dict())
+            df_validations
+
+        if pd.isnull(row['obs.uuid']):
+            exclude_files_dict['reason'].append('obs.uuid value is Null')
+            exclude_files_dict['value'].append(row.to_dict())
+
+        if pd.isnull(row['inspection.partNumber']):
+            exclude_files_dict['reason'].append('inspection.partNumber value is Null')
+            exclude_files_dict['value'].append(row.to_dict())
+
+        if pd.isnull(row['inspection.partserialNumber']):
+            exclude_files_dict['reason'].append('inspection.partserialNumber value is Null')
+            exclude_files_dict['value'].append(row.to_dict())
+
+        if pd.isnull(row['inspection.engineSerialNumber']):
+            exclude_files_dict['reason'].append('inspection.engineSerialNumber value is Null')
+            exclude_files_dict['value'].append(row.to_dict())
+            
+        if pd.isnull(row['obs.servicableLimit']):
+            exclude_files_dict['reason'].append('obs.servicableLimit value is Null')
+            exclude_files_dict['value'].append(row.to_dict())
+        
+        if pd.isnull(row['attribute.name']):
+            exclude_files_dict['reason'].append('obs.servicableLimit value is Null')
+            exclude_files_dict['value'].append(row.to_dict())
+
+    return exclude_files_dict
+
+
+excluded_files, exclude_files_dict = preprocess_validation_ppi(df)
+
+
+print("Exclude Files Dictionary:")
+display(pd.DataFrame(exclude_files_dict))
+
+#########################################################
 import warnings
 import unittest
 from pyspark.sql import functions as F
