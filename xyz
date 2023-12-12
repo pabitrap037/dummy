@@ -1,3 +1,88 @@
+import warnings
+import unittest
+import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col,udf
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType,FloatType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+
+warnings.filterwarnings("ignore")
+
+
+
+class UnitTestFunctions(unittest.TestCase):
+
+    def mock_data_uuid(self):
+        #input mock data
+        dictionary_dt = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                               '902dc46c-bf1d-4a05-a396-5ba451d5a3cb',
+                               '865e8e5f-a23c-4d85-b03c-6a5456ae7891'],
+                      'stream_id': [None,None,'20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f'],
+                      'processed':['False','False','True']
+                      }
+        mock_data_input = spark.createDataFrame([dictionary_dt])
+        mock_data_input.createOrReplaceTempView("dt")
+        dictionary_df = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                               '902dc46c-bf1d-4a05-a396-5ba451d5a3cb',
+                               '865e8e5f-a23c-4d85-b03c-6a5456ae7891'],
+                      'stream_id': [None,None,'20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f'],
+                      'processed':['False','False','True']
+                      }
+        mock_data_expected=spark.createDataFrame([dictionary_df])
+        mock_data_expected.createReplaceTempView("df")
+
+        #expected mock data 
+        dictionary_expected = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                               '902dc46c-bf1d-4a05-a396-5ba451d5a3cb'],
+                      'stream_id': [None,None],
+                      'from_table':['detection','defect'],
+                      'processed':['False','False'],
+                      'reason':['the following 1-1 UUID does not match in defect & detections',
+                                'the following 1-1 UUID does not match in defect & detections'],
+
+                      'processed':['False','False']
+                      }
+        mock_data_expected=spark.createDataFrame([dictionary_expected])
+        return mock_data_expected
+    
+    
+
+    ###inspection
+    def inspection_rawtocurated():
+            
+        #read tag table and get latest timestamp data
+        # df_tag = spark.sql("select * from dmro_raw.tag where load_timestamp = (select max(load_timestamp) from dmro_raw.tag)")
+        df_tag = spark.sql(f"select * from dmro_raw.tag where processed = False")
+
+        if df_tag.count != 0:
+            exception_df=df_tag.filter((df_tag['operation_code'].isNull() == True) | (df_tag['create_time'].isNull() == True))
+            if exception_df.count()>0:
+                reason_df = exception_df.withColumn("reason", lit("operation code or create time is null"))
+
+
+            #create new columns to split up time
+            df_tag = df_tag.withColumn('inspection_date', F.date_format(F.col('create_time'), 'yyyy-MM-dd'))\
+                    .withColumn('inspection_time', F.date_format(F.col('create_time'), 'HH:mm:ss'))
+
+            print("print df with columns split")
+            df_tag.display()
+
+            #select the necessary fields
+            df_tag = df_tag.select('part_number', 'serial_number', 'automated_disposition', 'create_station', 'inspection_index', 'inspector_disposition', 'inspection_facility', 'operation_code', 'ppi_type', 'shop_visit', 'stream_id', 'inspection_date', 'inspection_time')
+
+            #input new current timestamp 
+            df_tag = df_tag.withColumn("load_timestamp", F.current_timestamp()) \
+                        .withColumn("processed", lit(False)) \
+                        .withColumn("inspection_index",df_tag.inspection_index.cast(IntegerType())) \
+                        .withColumn("operation_code",df_tag.operation_code.cast(IntegerType())) \
+                        .withColumn("inspection_date",df_tag.inspection_date.cast(DateType())) \
+                        .withColumn("shop_visit",df_tag.shop_visit.cast(IntegerType()))
+                        # .withColumn("inspection_time",df_tag.inspection_time.cast('timestamp'))
+
+            return df_tag
+
+#######################################################
 import pandas as pd
 json_data = [
     {"inspection_uuid": "abc123", "obs_uuid": "123"},
