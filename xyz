@@ -1,3 +1,75 @@
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.types import StructType, StructField, StringType, DateType, IntegerType
+from pyspark.sql.functions import lit
+
+# Assuming 'spark' is your SparkSession
+spark = SparkSession.builder.master("local").appName("mock_data").getOrCreate()
+
+class UnitTestFunctions:
+    
+    def mock_data_inspection_rawtocurated(self):
+        # Input mock data
+        data = [
+            ('part123', 'serial456', 'Pass', 'StationA', 1, 'Accept', 'Facility1', 101, 'PPI', 1, '20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-07', '12:34:56'),
+            ('part456', 'serial789', 'Fail', 'StationB', 2, 'Reject', 'Facility2', 102, 'PPI', 0, '20230608-123456_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-08', '14:45:30'),
+            ('part789', 'serial123', 'Pass', 'StationC', 3, 'Accept', 'Facility3', 103, 'PPI', 1, '20230609-045612_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-09', '09:15:00')
+        ]
+
+        schema = StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('automated_disposition', StringType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('inspector_disposition', StringType(), True),
+            StructField('inspection_facility', StringType(), True),
+            StructField('operation_code', IntegerType(), True),
+            StructField('ppi_type', StringType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('inspection_date', StringType(), True),
+            StructField('inspection_time', StringType(), True),
+        ])
+
+        mock_data_input = spark.createDataFrame(data, schema=schema)
+
+        # Expected mock data
+        expected_data = [
+            ('part123', 'serial456', 'Pass', 'StationA', 1, 'Accept', 'Facility1', 101, 'PPI', 1, '20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-07', '12:34:56', '2023-12-12T00:00:00', False),
+            ('part456', 'serial789', 'Fail', 'StationB', 2, 'Reject', 'Facility2', 102, 'PPI', 0, '20230608-123456_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-08', '14:45:30', '2023-12-12T00:00:00', False),
+            ('part789', 'serial123', 'Pass', 'StationC', 3, 'Accept', 'Facility3', 103, 'PPI', 1, '20230609-045612_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-09', '09:15:00', '2023-12-12T00:00:00', False)
+        ]
+
+        expected_schema = StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('automated_disposition', StringType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('inspector_disposition', StringType(), True),
+            StructField('inspection_facility', StringType(), True),
+            StructField('operation_code', IntegerType(), True),
+            StructField('ppi_type', StringType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('inspection_date', StringType(), True),
+            StructField('inspection_time', StringType(), True),
+            StructField('load_timestamp', StringType(), True),
+            StructField('processed', BooleanType(), True),
+        ])
+
+        expected_data_df = spark.createDataFrame(expected_data, schema=expected_schema)
+
+        return mock_data_input, expected_data_df
+
+# Example of using the mock data function
+unit_test_instance = UnitTestFunctions()
+input_data, expected_output = unit_test_instance.mock_data_inspection_rawtocurated()
+input_data.show()
+expected_output.show()
+
+###################################################################################
 import warnings
 import unittest
 import re
