@@ -80,6 +80,367 @@ class UnitTestFunctions(unittest.TestCase):
     def mock_data_inspection_rawtocurated(self):
         #input data
         input_data = [
+            ('part123', 'serial456', 'Pass', 'StationA', 1, 'Accept', 'Facility1', 101, 'PPI', 1, '20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-07', '12:34:56',True),
+            ('part456', 'serial789', 'Fail', 'StationB', 2, 'Reject', 'Facility2', None, 'PPI', 0, '20230608-123456_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-08', '14:45:30',False),
+            ('part789', 'serial123', 'Pass', 'StationC', 3, 'Accept', 'Facility3', 103, 'PPI', 1, '20230609-045612_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-09', '09:15:00',False)
+        ]
+
+        schema = StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('automated_disposition', StringType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('inspector_disposition', StringType(), True),
+            StructField('inspection_facility', StringType(), True),
+            StructField('operation_code', IntegerType(), True),
+            StructField('ppi_type', StringType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('create_time', StringType(), True),
+            StructField('processed',BooleanType(),True)
+        ])
+
+        mock_data_input = spark.createDataFrame(input_data)
+        mock_data_input.createReplaceTempView("dmro_raw_tag")
+
+        # Expected mock data
+        expected_data = [
+            ('part123', 'serial456', 'Pass', 'StationA', 1, 'Accept', 'Facility1', 101, 'PPI', 1, '20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-06T18:23:16.581+0000',  False),
+            ('part456', 'serial789', 'Fail', 'StationB', 2, 'Reject', 'Facility2', None, 'PPI', 0, '20230608-123456_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-07T19:23:16.581+0000',  False),
+            ('part789', 'serial123', 'Pass', 'StationC', 3, 'Accept', 'Facility3', 103, 'PPI', 1, '20230609-045612_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-08T20:23:16.581+0000',  False)
+        ]
+
+        expected_schema = StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('automated_disposition', StringType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('inspector_disposition', StringType(), True),
+            StructField('inspection_facility', StringType(), True),
+            StructField('operation_code', IntegerType(), True),
+            StructField('ppi_type', StringType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('inspection_date', DateType(), True),
+            StructField('inspection_time', StringType(), True),
+            StructField('processed', BooleanType(), True)
+        ])
+
+        expected_data_df = spark.createDataFrame(expected_data, schema=expected_schema)
+
+        return expected_data_df
+
+
+    def inspection_rawtocurated(self,dmro_raw_tag):
+            
+        df_tag = spark.sql(f"select * from {dmro_raw_tag} where processed = False")
+
+        if df_tag.count != 0:
+            exception_df=df_tag.filter((df_tag['operation_code'].isNull() == True) | (df_tag['create_time'].isNull() == True))
+            if exception_df.count()>0:
+                reason_df = exception_df.withColumn("reason", lit("operation code or create time is null"))
+
+
+            #create new columns to split up time
+            df_tag = df_tag.withColumn('inspection_date', F.date_format(F.col('create_time'), 'yyyy-MM-dd'))\
+                    .withColumn('inspection_time', F.date_format(F.col('create_time'), 'HH:mm:ss'))
+
+            # print("print df with columns split")
+            # df_tag.display()
+
+            #select the necessary fields
+            df_tag = df_tag.select('part_number', 'serial_number', 'automated_disposition', 'create_station', 'inspection_index', 'inspector_disposition', 'inspection_facility', 'operation_code', 'ppi_type', 'shop_visit', 'stream_id', 'inspection_date', 'inspection_time')
+
+            #input new current timestamp 
+            df_tag = df_tag.withColumn("load_timestamp", F.current_timestamp()) \
+                        .withColumn("processed", lit(False)) \
+                        .withColumn("inspection_index",df_tag.inspection_index.cast(IntegerType())) \
+                        .withColumn("operation_code",df_tag.operation_code.cast(IntegerType())) \
+                        .withColumn("inspection_date",df_tag.inspection_date.cast(DateType())) \
+                        .withColumn("shop_visit",df_tag.shop_visit.cast(IntegerType()))
+
+            
+        return df_tag
+        
+    def test_inspection_rawtocurated(self):
+        expected_df = self.mock_data_inspection_rawtocurated()
+        output_df= self.inspection_rawtocurated()
+        #display(output_df)
+        #display(expected_df)
+        #assertion statement for load_timestamp
+        load_timestamp_datatype= output_df['load_timestamp'].dataType
+        self.assertIsInstance(load_timestamp_datatype,TimestampType())
+        #drop load time stamp
+        output_df= output_df.drop('load_timestamp')
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+        # self.assertTrue(reason_df.count(),1)
+        # self.assertTrue(exception_df.count(),1)
+
+
+        ###defect
+    def mock_data_defect_rawtocurated(self):
+        #read tables from raw
+        ##mock data for tag table
+        #columns needed from tag table will create mock data according to that
+        tag_dictionary={
+            'part_number':['part1111','part2222','part3333'],
+            'serial_number':['serial111','serial222','serial333'],
+            'stream_id':['stream1111','stream2222','stream3333'],
+            'processed':['True','False','False']
+        }
+        mock_data_tag = spark.createDataFrame(tag_dictionary)
+        mock_data_tag.createReplaceTempView("dmro_raw_tag")
+        ##mock data for defect table
+        defect_dictionary={
+            'Defect_Type':['defect1','defect2','defect3'],
+            'size':[1.0,2.0,3.0],
+            'disposition':['disp1','disp2','disp3','disp4'],
+            'Indication_Type':['ind1','ind2','ind3'],
+            'Short_text':['stext1','stext2','stext3'],
+            'x':[1.1,1.2,1.3],
+            'y':[2.1,2.2,2.3],
+            'z':[3.1,3.2,3.3],
+            'Analytics_Confidence':[4.1,4.2,4.3],
+            'angle':[9.1,9.2,9.3],
+            'elongation':[5.1,5.2,5.3],
+            'uuid':['uuid1111','uuid2222','uuid3333'],
+            'stream_id':['stream1111','stream2222','stream3333']
+            }
+        mock_data_defect = spark.createDataFrame(defect_dictionary)
+        mock_data_defect.createReplaceTempView("dmro_raw_defect")
+        ##mock data for PPI table
+        ppi_dictionary ={
+            'part_number':['part1111','part2222','part3333'],
+            'airfoil_region':['airfoil1','airfoil2','airfoil3'],
+            'PPI_region':['ind1','ind2','ind3']
+        }
+        mock_data_defect = spark.createDataFrame(ppi_dictionary)
+        mock_data_defect.createReplaceTempView("dmro_curated_ppi_airfoil_region")
+        #mock data for expected data
+        expected_dictionary={
+            'part_number':['part1111','part2222','part3333'],
+            'serial_number':['serial111','serial222','serial333'],
+            'Defect_Type':['defect1','defect2','defect3'],
+            'size':[1.1,2.1,3.1],
+            'disposition':['disp1','disp2','disp3','disp4'],
+            'Indication_Type':['ind1','ind2','ind3'],
+            'Short_text':['stext1','stext2','stext3'],
+            'x':[1.1,1.2,1.3],
+            'y':[2.1,2.2,2.3],
+            'z':[3.1,3.2,3.3],
+            'Analytics_Confidence':[4.1,4.2,4.3],
+            'angle':[9.1,9.2,9.3],
+            'elongation':[5.1,5.2,5.3],
+            'uuid':['uuid1111','uuid2222','uuid3333'],
+            'stream_id':['stream1111','stream2222','stream3333'],
+            'airfoil_region':['airfoil1','airfoil2','airfoil3'],
+            'processed':[False,False,False]
+            }
+        expected_schema = StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('Defect_Type', StringType(), True),
+            StructField('size', DoubleType(), True),
+            StructField('disposition', StringType(), True),
+            StructField('Indication_Type', StringType(), True),
+            StructField('Short_text', StringType(), True),
+            StructField('x', DoubleType(), True),
+            StructField('y', DoubleType(), True),
+            StructField('z', DoubleType(), True),
+            StructField('Analytics_Confidence', DoubleType(), True),
+            StructField('uuid', StringType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('airfoil_region', StringType(), True),
+            StructField('processed', BooleanType(), True)
+        ])
+        expected_data_df= spark.createDataFrame(expected_dictionary,schema=expected_schema)
+        return expected_data_df
+
+    def defect_rawtocurated(self,dmro_raw_tag,dmro_raw_defect,dmro_curated_ppi_airfoil_region):
+        df_tag = spark.read.table(f"dmro_raw_tag")
+        # df_tag = spark.sql(f"select * from dmro_raw.tag{v}")
+        # print("tag from raw")
+        # df_tag.display()
+        df_tag.createOrReplaceTempView("tag")
+        df_def = spark.read.table(f"dmro_raw_defect")
+        # print("defect from raw")
+        # df_def.display()
+        df_ppi = spark.read.table(f"dmro_curated_ppi_airfoil_region")
+        # df_def.createOrReplaceTempView("defect")
+        df_ppi.createOrReplaceTempView("ppi")
+
+
+        exception_df=df_def.filter((df_def['disposition'].isNull() == True) | (df_def['indication_type'].isNull() == True))
+        if exception_df.count()>0:
+            reason_df = exception_df.withColumn("reason", lit("disposition or indication type is null"))
+
+        df_def = df_def.filter((df_def['disposition'].isNotNull()) & (df_def['`indication_type`'].isNotNull()))
+        df_def.createOrReplaceTempView("defect")
+        # print("here")
+        # df_def.display()
+        # df_def.display()
+
+        # print("joining")
+        # sql statement with joins from tag to defect and ppi based on max timestamp
+        df = spark.sql("""
+            select tg.part_number,
+                tg.serial_number,
+                df.`Defect_Type` as defect_type,
+                df.size,
+                df.disposition as defect_disposition,
+                df.`Indication_Type` as ppi_region,
+                df.`Short_text` as short_text,
+                df.x,
+                df.y,
+                df.z,
+                df.`Analytics_Confidence` as analytics_confidence,
+                df.angle,
+                df.elongation,
+                df.uuid,
+                df.stream_id,
+                pp.airfoil_region
+            from tag as tg
+            left outer join defect as df
+            on df.stream_id = tg.stream_id 
+            left outer join ppi as pp
+            on pp.PPI_region = rtrim(df.`Indication_Type`) and pp.part_number = tg.part_number
+            where tg.processed = False
+        """)
+
+        # df = spark.sql("""select tg.part_number, df.`Indication_Type` as ppi_region, pp.airfoil_region from tag as tg left outer join defect as df on df.stream_id = tg.stream_id left outer join ppi as pp on pp.PPI_region = df.`Indication Type`""")
+
+        # print("defect joined table")
+        # df.schema
+        # df.display()
+
+        #input new current timestamp
+        if df.count != 0:
+            df = df.withColumn("load_timestamp", F.current_timestamp())\
+                    .withColumn("processed", lit(False))\
+                    .withColumn("size",df.size.cast(DoubleType()))\
+                    .withColumn("x",df.x.cast(DoubleType()))\
+                    .withColumn("y",df.y.cast(DoubleType()))\
+                    .withColumn("z",df.z.cast(DoubleType()))\
+                    .withColumn("analytics_confidence",df.analytics_confidence.cast(DoubleType()))\
+                    .withColumn("angle",df.angle.cast(DoubleType()))\
+                    .withColumn("elongation",df.elongation.cast(DoubleType()))\
+
+            # print("writing defect curated table")
+            # df.display()
+        return df
+
+    def test_defect_rawtocurated(self):
+        output_df= self.defect_rawtocurated()
+        #display(output_df)
+        expected_df = self.mock_data_defect_rawtocurated()
+        #display(expected_df)
+        #assertion statement for load_timestamp
+        load_timestamp_datatype= output_df['load_timestamp'].dataType
+        self.assertIsInstance(load_timestamp_datatype,TimestampType())
+        #drop load time stamp
+        output_df= output_df.drop('load_timestamp')
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+        # self.assertTrue(reason_df.count(),1)
+        # self.assertTrue(exception_df.count(),1)
+
+
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+    
+
+
+
+
+
+    
+
+
+#########################################################
+import warnings
+import unittest
+import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col,udf
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType,FloatType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+
+warnings.filterwarnings("ignore")
+
+
+
+class UnitTestFunctions(unittest.TestCase):
+
+    def mock_data_uuid(self):
+        #input mock data
+        dictionary_dt = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                               '902dc46c-bf1d-4a05-a396-5ba451d5a3cb',
+                               '865e8e5f-a23c-4d85-b03c-6a5456ae7891'],
+                      'stream_id': [None,None,'20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f'],
+                      'processed':['False','False','True']
+                      }
+        mock_data_input = spark.createDataFrame([dictionary_dt])
+        mock_data_input.createOrReplaceTempView("dt")
+        dictionary_df = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                               '902dc46c-bf1d-4a05-a396-5ba451d5a3cb',
+                               '865e8e5f-a23c-4d85-b03c-6a5456ae7891'],
+                      'stream_id': [None,None,'20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f'],
+                      'processed':['False','False','True']
+                      }
+        mock_data_expected=spark.createDataFrame([dictionary_df])
+        mock_data_expected.createReplaceTempView("df")
+
+        #expected mock data 
+        dictionary_expected = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                               '902dc46c-bf1d-4a05-a396-5ba451d5a3cb'],
+                      'stream_id': [None,None],
+                      'from_table':['detection','defect'],
+                      'processed':['False','False'],
+                      'reason':['the following 1-1 UUID does not match in defect & detections',
+                                'the following 1-1 UUID does not match in defect & detections'],
+
+                      'processed':['False','False']
+                      }
+        mock_data_expected=spark.createDataFrame([dictionary_expected])
+        return mock_data_expected
+    
+    
+
+    def uuid_defect_detection_match(self):
+        df_not_match = spark.sql("""
+            select dt.uuid, dt.stream_id, 'detection' as from_table 
+            from dt 
+            left outer join df
+            on dt.uuid = df.uuid 
+            where df.stream_id is null and dt.processed = False
+            union all
+            select dt.uuid, dt.stream_id, 'defect' as from_table
+            from df 
+            left outer join dt 
+            on dt.uuid = df.uuid 
+            where dt.stream_id is null and df.processed = False
+        """)
+
+        if df_not_match.count() != 0:
+            #print("defect and detection uuid not match")
+            df_not_match = df_not_match.withColumn("reason", lit("the following 1-1 UUID does not match in defect & detections")) \
+                                .withColumn("processed", lit(False))
+        return df_not_match
+            
+    def test_uuid_defect_detection_match(self):
+        output_df = self.uuid_defect_detection_match("uuid_defect")
+        #display(output_df)
+        expected_df = self.mock_data_uuid()
+        #display(expected_df)
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+    ##inspection raw to curated
+    def mock_data_inspection_rawtocurated(self):
+        #input data
+        input_data = [
             ('part123', 'serial456', 'Pass', 'StationA', '1', 'Accept', 'Facility1', '101', 'PPI', 1, '20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-07', '12:34:56',True),
             ('part456', 'serial789', 'Fail', 'StationB', '2', 'Reject', 'Facility2', None, 'PPI', 0, '20230608-123456_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-08', '14:45:30',False),
             ('part789', 'serial123', 'Pass', 'StationC', '3', 'Accept', 'Facility3', '103', 'PPI', 1, '20230609-045612_375fabcd-afd7-4737-be57-3e67218a823f', '2023-06-09', '09:15:00',False)
