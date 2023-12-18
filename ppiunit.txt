@@ -1,5 +1,91 @@
 import warnings
 import unittest
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col, lit
+from pyspark.sql.types import StructType, StructField, StringType, BooleanType
+
+warnings.filterwarnings("ignore")
+
+# In Databricks, a SparkSession is already available as `spark`
+
+class UnitTestFunctions(unittest.TestCase):
+
+    def mock_data_uuid(self):
+        # Explicitly define the schema
+        schema = StructType([
+            StructField("uuid", StringType(), True),
+            StructField("stream_id", StringType(), True),
+            StructField("processed", StringType(), True)
+        ])
+
+        dictionary_dt = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                                  '902dc46c-bf1d-4a05-a396-5ba451d5a3cb',
+                                  '865e8e5f-a23c-4d85-b03c-6a5456ae7891'],
+                         'stream_id': [None, None, '20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f'],
+                         'processed': ['False', 'False', 'True']
+                         }
+
+        # Create DataFrame with the specified schema
+        mock_data_input = spark.createDataFrame([tuple(dictionary_dt[col] for col in schema.fieldNames())], schema=schema)
+        mock_data_input.createOrReplaceTempView("dt")
+
+    def mock_data_expected(self):
+        # Explicitly define the schema
+        schema = StructType([
+            StructField("uuid", StringType(), True),
+            StructField("stream_id", StringType(), True),
+            StructField("processed", StringType(), True)
+        ])
+
+        dictionary_df = {'uuid': ['abe85dce-97d3-4565-94f1-692519668b5b',
+                                  '902dc46c-bf1d-4a05-a396-5ba451d5a3cb',
+                                  '865e8e5f-a23c-4d85-b03c-6a5456ae7891'],
+                         'stream_id': [None, None, '20230607-163421_375fabcd-afd7-4737-be57-3e67218a823f'],
+                         'processed': ['False', 'False', 'True']
+                         }
+
+        # Create DataFrame with the specified schema
+        mock_data_expected = spark.createDataFrame([tuple(dictionary_df[col] for col in schema.fieldNames())], schema=schema)
+        mock_data_expected.createOrReplaceTempView("df")
+
+        # ... (Remaining code)
+
+    def uuid_defect_detection_match(self):
+        df_not_match = spark.sql("""
+            select dt.uuid, dt.stream_id, 'detection' as from_table 
+            from dt 
+            left outer join df
+            on dt.uuid = df.uuid 
+            where df.stream_id is null and dt.processed = 'False'
+            union all
+            select dt.uuid, dt.stream_id, 'defect' as from_table
+            from df 
+            left outer join dt 
+            on dt.uuid = df.uuid 
+            where dt.stream_id is null and df.processed = 'False'
+        """)
+
+        if df_not_match.count() != 0:
+            df_not_match = df_not_match.withColumn("reason", lit("the following 1-1 UUID does not match in defect & detections")) \
+                .withColumn("processed", lit(False))
+        return df_not_match
+
+    def test_uuid_defect_detection_match(self):
+        output_df = self.uuid_defect_detection_match()
+        expected_df = self.mock_data_expected()
+
+        # Compare specific columns to avoid potential issues
+        columns_to_compare = ['uuid', 'stream_id', 'from_table', 'processed', 'reason']
+        for col_name in columns_to_compare:
+            self.assertTrue(output_df.select(col_name).toPandas().equals(expected_df.select(col_name).toPandas()))
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+######################################################################################
+import warnings
+import unittest
 import re
 from pyspark.sql import functions as F
 from pyspark.sql.functions import col,udf
