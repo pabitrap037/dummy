@@ -1,3 +1,181 @@
+import warnings
+import unittest
+import re
+import pandas
+from pyspark.sql import functions  as F
+from pyspark.sql.functions import col,udf,lit,to_timestamp
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType, FloatType, IntegerType, DoubleType, BooleanType, TimestampType, DateType
+from pyspark.sql.window import Window
+
+warnings.filterwarnings("ignore")
+
+class UnitTestFunctions(unittest.TestCase):
+
+    ##inspection raw to curated
+    def mock_data_inspection_rawtocurated(self):
+        #input data
+        input_data={
+            'part_number':['part1111','part2222','part3333'],
+            'serial_number':['serial111','serial222','serial333'],
+            'automated_disposition':['Pass','Fail','Pass'],
+            'create_station':['StationA','StationB','StationC'],
+            'inspection_index':[1,2,3],
+            'inspector_disposition':['Accept','Reject','Accept'],
+            'inspection_facility':['Facility1','Facility2','Facility3'],
+            'operation_code':[101,None,103],
+            'ppi_type':['PPI','PPI','PPI'],
+            'shop_visit':[1,0,1],
+            'stream_id':['streamid_11','streamid_22','streamid_33'],
+            'create_time':['2023-06-06T01:01:01.581+0000','2023-07-07T02:02:02.581+0000','2023-08-08T03:03:03.581+0000'],
+            'processed':[False,False,False]
+            }
+        schema = StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('automated_disposition', StringType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('inspector_disposition', StringType(), True),
+            StructField('inspection_facility', StringType(), True),
+            StructField('operation_code', IntegerType(), True),
+            StructField('ppi_type', StringType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('create_time', StringType(), True),
+            StructField('processed',BooleanType(),True)
+        ])
+        rows_inp = [
+            {'part_number': pn, 'serial_number':sn ,'automated_disposition':ad, 'create_station': cs,'inspection_index':ii,
+             'inspector_disposition':id,'inspection_facility':insf,'operation_code':oc,'ppi_type':pp,'shop_visit':sv,'stream_id':si,
+             'create_time':ct,'processed':pr}
+            for pn, sn, ad, cs, ii,id,insf ,oc,pp,sv,si,ct,pr in zip(
+                input_data['part_number'],
+                input_data['serial_number'],
+                input_data['automated_disposition'],
+                input_data['create_station'],
+                input_data['inspection_index'],
+                input_data['inspector_disposition'],
+                input_data['inspection_facility'],
+                input_data['operation_code'],
+                input_data['ppi_type'],
+                input_data['shop_visit'],
+                input_data['stream_id'],
+                input_data['create_time'],
+                input_data['processed']
+            )
+        ]
+        mock_data_input = spark.createDataFrame(rows_inp, schema=schema)
+        mock_data_input.createOrReplaceTempView("dmro_raw_tag")
+        expected_data={
+            'part_number':['part1111','part2222','part3333'],
+            'serial_number':['serial111','serial222','serial333'],
+            'automated_disposition':['Pass','Fail','Pass'],
+            'create_station':['StationA','StationB','StationC'],
+            'inspection_index':[1,2,3],
+            'inspector_disposition':['Accept','Reject','Accept'],
+            'inspection_facility':['Facility1','Facility2','Facility3'],
+            'operation_code':[101,None,103],
+            'ppi_type':['PPI','PPI','PPI'],
+            'shop_visit':[1,0,1],
+            'stream_id':['streamid_11','streamid_22','streamid_33'],
+            'inspection_date':['6/6/2023','7/7/2023','8/8/2023'],
+            'inspection_time':['01:01:01','02:02:02','03:03:03'],
+            'processed':[False,False,False]
+            }
+
+        expected_schema = StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('automated_disposition', StringType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('inspector_disposition', StringType(), True),
+            StructField('inspection_facility', StringType(), True),
+            StructField('operation_code', IntegerType(), True),
+            StructField('ppi_type', StringType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('inspection_date', StringType(), True),
+            StructField('inspection_time', StringType(), True),
+            StructField('processed', BooleanType(), True)
+        ])
+
+        rows_exp=[
+            {'part_number': pn, 'serial_number':sn ,'automated_disposition':ad, 'create_station': cs,'inspection_index':ii,'inspector_disposition':ind,'inspection_facility':insf,'operation_code':oc,'ppi_type':pp,'shop_visit':sv,'stream_id':si,'inspection_date':idt,'inspection_time':it,'processed':pr}
+            for pn, sn, ad, cs, ii,ind,insf ,oc,pp,sv,si,idt,it,pr in zip(
+                expected_data['part_number'],
+                expected_data['serial_number'],
+                expected_data['automated_disposition'],
+                expected_data['create_station'],
+                expected_data['inspection_index'],
+                expected_data['inspector_disposition'],
+                expected_data['inspection_facility'],
+                expected_data['operation_code'],
+                expected_data['ppi_type'],
+                expected_data['shop_visit'],
+                expected_data['stream_id'],
+                expected_data['inspection_date'],
+                expected_data['inspection_time'],
+                expected_data['processed']
+            )
+        ]
+        expected_data_df = spark.createDataFrame(rows_exp, schema=expected_schema)
+
+        return expected_data_df
+
+    def inspection_rawtocurated(self):
+            
+        df_tag = spark.sql(f"select * from dmro_raw_tag where processed = False")
+
+        if df_tag.count != 0:
+            exception_df=df_tag.filter((df_tag['operation_code'].isNull() == True) | (df_tag['create_time'].isNull() == True))
+            if exception_df.count()>0:
+                reason_df = exception_df.withColumn("reason", lit("operation code or create time is null"))
+
+            #create new columns to split up time
+            df_tag = df_tag.withColumn('inspection_date', F.date_format(F.col('create_time'), 'yyyy-MM-dd'))\
+                    .withColumn('inspection_time', F.date_format(F.col('create_time'), 'HH:mm:ss'))
+
+            # print("print df with columns split")
+            # df_tag.display()
+
+            #select the necessary fields
+            df_tag = df_tag.select('part_number', 'serial_number', 'automated_disposition', 'create_station', 'inspection_index', 'inspector_disposition', 'inspection_facility', 'operation_code', 'ppi_type', 'shop_visit', 'stream_id', 'inspection_date', 'inspection_time')
+
+            #input new current timestamp 
+            df_tag = df_tag.withColumn("load_timestamp", F.current_timestamp()) \
+                        .withColumn("processed", lit(False)) \
+                        .withColumn("inspection_index",df_tag.inspection_index.cast(IntegerType())) \
+                        .withColumn("operation_code",df_tag.operation_code.cast(IntegerType())) \
+                        .withColumn("inspection_date",df_tag.inspection_date.cast(DateType())) \
+                        .withColumn("shop_visit",df_tag.shop_visit.cast(IntegerType()))
+
+        return df_tag
+        
+    def test_inspection_rawtocurated(self):
+        expected_df = self.mock_data_inspection_rawtocurated()
+        output_df= self.inspection_rawtocurated()
+        #display(output_df)
+        print('exp')
+        display(expected_df)
+        #assertion statement for load_timestamp
+        # load_timestamp_datatype= output_df['load_timestamp']
+        # print('helllo',load_timestamp_datatype)
+        print('output')
+        
+        # print(output_df['load_timestamp'].schema)
+        # self.assertIsInstance(output_df.schema['load_timestamp'],TimestampType())
+        #drop load time stamp
+        output_df= output_df.drop('load_timestamp')
+        display(output_df)
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+    
+    
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+
+########################################################
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType, StructField, StringType, DateType, IntegerType
