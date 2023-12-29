@@ -1,6 +1,43 @@
 import warnings
 import unittest
 import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col,udf
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType,FloatType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+
+warnings.filterwarnings("ignore")
+
+
+
+class UnitTestFunctions(unittest.TestCase):
+    def mock_data_extract_stream_id(self):
+        #need to know the input and output pattern
+        file_path_str_inp=r'C:\Users\pabitrakumar.pradhan\OneDrive - HCL Technologies Ltd\DMRO\Productivity'
+        file_path_str_exp=r'C:\Users\pabitrakumar.p'
+        return file_path_str_inp,file_path_str_exp
+    
+    def extract_stream_id(file_path: str):
+        """extract stream id from file path by finding 52-character string made of digits, letters, underscores, or hyphens"""
+        regex = r'/(?P<stream_id>[\w\-]{52})_'
+        match = re.search(regex, str(file_path))
+        return match.group('stream_id')
+    # to use extract_stream_id on the DataFrames, it has to be in a udf
+    # stream_id_udf = F.udf(lambda x: extract_stream_id(x),StringType())
+        
+    def test_extract_stream_id(self):
+        inp_data,expected_df = self.mock_data_extract_stream_id()
+        output_df = self.extract_stream_id(inp_data)
+        display(output_df)
+        #self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+#################################3333333333333333333
+import warnings
+import unittest
+import re
 import pandas
 from pyspark.sql import functions  as F
 from pyspark.sql.functions import col,udf,lit,to_timestamp
