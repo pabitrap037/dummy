@@ -1,3 +1,76 @@
+import unittest
+from pyspark.sql import SparkSession
+from pyspark.sql import Row
+from pyspark.sql.types import StructType, StructField, StringType, LongType, IntegerType, DoubleType, DateType, TimestampType
+
+class UnitTestFunctions(unittest.TestCase):
+
+    @staticmethod
+    def mock_inspection_curatedtopublish():
+        mock_data_dict = {
+            'system_insp_id': 1,
+            'part_number': 'ABC123',
+            'serial_number': 'SN123',
+            'automated_disposition': 'Pass',
+            'inspection_date': '2022-01-01',
+            'shop_visit': 2,
+            'create_station': 'Station1',
+            'inspection_index': 42,
+            'ESN': 'ESN123',
+            'engine_flight_hours': 500,
+            'engine_cycles': 50,
+            'engine_operator': 'Operator1',
+            'casting_vendor': 'Vendor1',
+            'coating_vendor': 'Vendor2',
+            'coating_gain': 'High',
+            'hole_drill_vendor': 'Vendor3',
+            'airflow_4800': 78.5,
+            'airflow_4802': 82.3,
+            'stream_id': 'Stream123',
+            'load_timestamp': '2022-01-01 12:34:56'
+        }
+
+        return Row(**mock_data_dict)
+
+    def inspection_curatedtopublish():
+        # Your existing code here
+
+    def test_inspection_curatedtopublish(self):
+        spark = SparkSession.builder.getOrCreate()
+
+        mock_row = self.mock_inspection_curatedtopublish()
+        schema = StructType([
+            StructField('system_insp_id', LongType(), True),
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('automated_disposition', StringType(), True),
+            StructField('inspection_date', DateType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('ESN', StringType(), True),
+            StructField('engine_flight_hours', IntegerType(), True),
+            StructField('engine_cycles', IntegerType(), True),
+            StructField('engine_operator', StringType(), True),
+            StructField('casting_vendor', StringType(), True),
+            StructField('coating_vendor', StringType(), True),
+            StructField('coating_gain', StringType(), True),
+            StructField('hole_drill_vendor', StringType(), True),
+            StructField('airflow_4800', DoubleType(), True),
+            StructField('airflow_4802', DoubleType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('load_timestamp', TimestampType(), True)
+        ])
+
+        mock_df = spark.createDataFrame([mock_row], schema=schema)
+
+        # Continue with your testing logic using mock_df
+        # The rest of your test code
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+#########################
 import warnings
 import unittest
 import re
