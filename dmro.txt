@@ -1,5 +1,42 @@
 import warnings
 import unittest
+from pyspark.sql.types import StructType, StringType
+from pyspark.sql.functions import col
+
+warnings.filterwarnings("ignore")
+
+class UnitTestFunctions(unittest.TestCase):
+
+    def mock_reorder_columns(self):
+        schema = StructType([StructField("reason", StringType()), StructField("value", StringType())])
+        mock_data_dictionary = [{'reason': 'abc', 'value': 'def'}]
+        exp_data_dictionary = [{'reason': 'abc', 'value1': 'def'}]
+        mock_data_df = spark.createDataFrame(mock_data_dictionary, schema=schema)
+        exp_data_df = spark.createDataFrame(exp_data_dictionary)
+        return mock_data_df, exp_data_df
+
+    def reorder_columns(self, my_df):
+        """reorders the columns in the exception tables so that the exception reason comes first"""
+        columns = my_df.columns
+        columns.remove("reason")
+
+        # Some column names contain a period, which is a reserved character.
+        # Adding back ticks prevents an error.
+        columns = [f"`{col}`" for col in columns]
+        df = my_df.select("reason", *columns)
+        return df
+
+    def test_reorder_columns(self):
+        inp_data, expected_df = self.mock_reorder_columns()
+        output_df = self.reorder_columns(inp_data)
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+###################
+import warnings
+import unittest
 import re
 from pyspark.sql import functions as F
 from pyspark.sql.functions import col,udf
