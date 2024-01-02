@@ -1,5 +1,113 @@
 import warnings
 import unittest
+import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col,udf
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType,FloatType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+
+warnings.filterwarnings("ignore")
+
+
+
+class UnitTestFunctions(unittest.TestCase):
+    def mock_inspection_curatedtopublish():
+        mock_data_dictionary=
+        return expected_df
+    def inspection_curatedtopublish():
+        #print("writing inspection publish layer")
+        #v = add_underscore(version)
+
+        df_inspection = spark.sql("""select 
+            ins.part_number,
+            ins.serial_number,
+            ins.automated_disposition,
+            ins.inspection_date,
+            ins.create_station,
+            ins.shop_visit,
+            ins.stream_id,
+            ins.inspection_index,
+            current_timestamp() as load_timestamp,
+            cast.casting_vendor,
+            eng.ESN,
+            eng.engine_flight_hours,
+            eng.engine_cycles,
+            eng.engine_operator,
+            ct.coating_vendor,
+            ct.coating_gain,
+            hol.hole_drill_vendor,
+            ar.`4800` as airflow_4800,
+            ar.`4802` as airflow_4802
+        from inspection as ins
+        left join 
+        casting as cast 
+        on ins.serial_number=cast.serial_number
+        left join
+        engine as eng
+        on eng.serial_number=cast.serial_number
+        left join 
+        coat as ct
+        on ct.serial_number=eng.serial_number
+        left join
+        hole as hol
+        on hol.serial_number =ct.serial_number
+        left join
+        airflow_group as ar
+        on ct.serial_number=ar.serial_number
+        where ins.processed = False
+        """)
+
+        # df = spark.sql("""SELECT * FROM inspection""")
+        if df_inspection.count() != 0:
+            df_inspect = df_inspection.withColumn("system_insp_id", F.monotonically_increasing_id())
+
+            #reorder table
+            df_insp = df_inspect.select('system_insp_id', 'part_number', 'serial_number', 'automated_disposition', 'inspection_date','shop_visit', 'create_station', 'inspection_index', 'ESN', 'engine_flight_hours', 'engine_cycles', 'engine_operator','casting_vendor', 'coating_vendor', 'coating_gain', 'hole_drill_vendor', 'airflow_4800', 'airflow_4802', 'stream_id', 'load_timestamp')
+
+            df_insp.schema
+            df_insp.display()
+            
+        return df_inspection
+
+    def test_inspection_curatedtopublish(self):
+        inp_data = self.inspection_curatedtopublish()
+        #display(inp_data)
+        #output_df = self.reorder_columns(inp_data)
+        #display(output_df)
+        #self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+    
+    
+    
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+################
+col_name	data_type
+system_insp_id	bigint
+part_number	string
+serial_number	string
+automated_disposition	string
+inspection_date	date
+shop_visit	int
+create_station	string
+inspection_index	int
+ESN	string
+engine_flight_hours	int
+engine_cycles	int
+engine_operator	string
+casting_vendor	string
+coating_vendor	string
+coating_gain	string
+hole_drill_vendor	string
+airflow_4800	double
+airflow_4802	double
+stream_id	string
+load_timestamp	timestamp
+
+################
+import warnings
+import unittest
 from pyspark.sql.types import StructType, StringType
 from pyspark.sql.functions import col
 
