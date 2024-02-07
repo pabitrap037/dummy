@@ -1,3 +1,180 @@
+-----------------------------------------------------------------------------
+import warnings
+import unittest
+import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col,udf
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType,FloatType,DoubleType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+class UnitTestFunctions(unittest.TestCase):
+    test=True
+    version=''
+    def mock_fix_img_file_path(self):
+        schema_input=StructType([
+                StructField('path',StringType(),True)
+            ])
+        mock_data_input={'path':r'["Pose_811_FrontForm\\instant_11\\11.png"]'}
+        df_input=spark.createDataFrame([mock_data_input],schema=schema_input)
+        schema_output=StructType([
+               StructField('img_file_path',StringType(),True)
+            ])
+        mock_data_output={'img_file_path':'Pose_811_FrontForm/instant_11/11.png'}
+        df_output=spark.createDataFrame([mock_data_output],schema=schema_output)
+        return df_input,df_output
+
+    def test_fix_img_file_path(self):
+        input_df,expected_df=self.mock_fix_img_file_path()
+        # expected_df.display()
+        output_df=fix_img_file_path(input_df)
+        # output_df.display()
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+    #####################################
+
+    def test_full_file_path(self):
+        inp_img_path = "Pose_811_FrontForm/instant_11/11.png"
+        inp_json_path = "/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/RIERX72599_mapping.json"
+        output_path = "/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_811_FrontForm/instant_11/11.png"
+        expected_path=full_file_path(inp_img_path,inp_json_path)
+        self.assertEqual(output_path,expected_path)
+
+    #########################################
+    #path_boundary_string_df
+    def mock_path_boundary_string_df(self):
+        schema_inp=StructType([
+            StructField('detections',StringType(),True),
+            StructField('file_path',StringType(),True)
+        ])
+        mock_data_input={
+            'detections':'[{"boundary":[[123.0,210.0],[101.0,392.0],[152.0,283.0]],"confidence":0.73223,"uuid":"f123g1h0-1234-5679-i1il-123dc4b5678","damage_type":0}, {"boundary":[[103.0,215.0],[125.0,202.0],[130.0,231.0]],"confidence":0.50231,"uuid":"b890f8g9-1234-5678-p9pn-097mn4oo830","damage_type":0}]',
+            'file_path':'/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/instant_19.json'
+        }
+        df_input=spark.createDataFrame([mock_data_input],schema=schema_inp)
+        #i need the datatypes of the dataframe which is given as input and as well as output
+        schema_output=StructType([
+            StructField('file_path',StringType(),True),
+            StructField('boundary',StringType(),True)
+        ])
+        mock_data_output={
+            'file_path':'/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/instant_19.json',
+            'boundary': '[[123.0,210.0],[101.0,392.0],[152.0,283.0]]'
+        }
+        df_output=spark.createDataFrame([mock_data_output],schema=schema_output)
+
+        df_input.createOrReplaceTempView("dmro_raw_instant")
+        return df_output
+
+
+    def test_path_boundary_string_df(self):
+        expected_df=self.mock_path_boundary_string_df()
+        # expected_df.display()
+        output_df=path_boundary_string_df("", test=True)
+        # output_df.display()
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+    #################################
+    #path_boundary_array_df
+    def mock_path_boundary_array_df(self):
+        schema_inp=StructType([
+            StructField('boundary',StringType(),True),
+            StructField('file_path',StringType(),True)
+        ])
+        mock_data_input={
+            'boundary':'[[123.0,210.0],[101.0,392.0],[152.0,283.0]]',
+            'file_path':'/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/instant_19.json'
+        }
+        df_input=spark.createDataFrame([mock_data_input],schema=schema_inp)
+        #i need the datatypes of the dataframe which is given as input and as well as output
+        schema_output=StructType([
+            StructField('boundary',ArrayType(ArrayType(DoubleType())),True),
+            StructField('file_path',StringType(),True)
+        ])
+        mock_data_output={
+            'boundary':[[123.0,210.0],[101.0,392.0],[152.0,283.0]],
+            'file_path':'/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/instant_19.json'
+        }
+        df_output=spark.createDataFrame([mock_data_output],schema=schema_output)
+
+        return df_input,df_output
+
+    
+    def test_path_boundary_array_df(self):
+        input_df,expected_df=self.mock_path_boundary_array_df()
+        # expected_df.display()
+        output_df=path_boundary_array_df(input_df)
+        # output_df.display()
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+    ############################################
+    ##extract parent directory
+
+    def test_extract_parent_directory(self):
+        input_str='/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/instant_19.json'
+        output_str='/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/'
+        expected_str=extract_parent_directory(input_str)
+        self.assertEqual(output_str,expected_str)
+
+    ###############################
+    #path_image_boundary
+    def mock_path_image_boundary_df(self):
+        schema_boundary=StructType([
+            StructField('filepath',StringType(),True),
+            StructField('boundary',StringType(),True)
+        ])
+        mock_df_boundary={
+            'file_path':'/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/instant_19.json',
+            'boundary':'[[123.0,210.0],[101.0,392.0],[152.0,283.0]]'
+        }
+        df_boundary=spark.createDataFrame([mock_df_boundary],schema=schema_boundary)
+
+        schema_mapping=StructType([
+            StructField('uuid',StringType(),True),
+            StructField('img_file_path',StringType(),True)
+        ])
+        mock_df_mapping={
+            'uuid':'asdf878m-df87-743h-a5ea-5nd8cds89du3',
+            'img_file_path':'/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/19.png'
+        }
+        df_mapping=spark.createDataFrame([mock_df_mapping],schema=schema_mapping)
+
+        schema_img=StructType([
+            StructField('content',StringType(),True),
+            StructField('path',StringType(),True)
+        ])
+        mock_df_img={
+            'content':'image1',
+            'path':'/mnt/dmro/ppi_scene_files/RIERX72599-2-Initial-1/Pose_611_FrontEdge/instant_19/19.png'
+        }
+        df_image=spark.createDataFrame([mock_df_img],schema=schema_img)
+
+        schema_dmro=StructType([
+            StructField('uuid',StringType(),True),
+            StructField('stream_id',StringType(),True)
+        ])
+        mock_df_dmro={
+            'uuid':'asdf878m-df87-743h-a5ea-5nd8cds89du3',
+            'stream_id':'20230704-140841_arvv9809-17f0-4392-o89i-dnu854jdu7uhh'
+        }
+        df_dmro_raw_defect=spark.createDataFrame([mock_df_dmro],schema=schema_dmro)
+        df_dmro_raw_defect.createOrReplaceTempView('dmro_raw_defect')
+
+        return df_boundary,df_image,df_mapping
+
+
+    def test_path_image_boundary_df(self):
+        input_df,output_df=self.mock_path_boundary_array_df()
+        output_df.display()
+        expected_df=path_boundary_array_df(input_df)
+        expected_df.display()
+        self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+
+
+-----------------------------------------------------------------------------
 ##inspection raw to curated
     def mock_data_inspection_rawtocurated(self):
         #input data
