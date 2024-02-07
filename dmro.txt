@@ -1,3 +1,75 @@
+----------------------------------------------------------------------------
+Documentation for UnitTestFunctions
+
+This documentation provides an overview of the code contained in the UnitTestFunctions class, explaining its purpose, methods, and usage.
+
+Purpose
+The UnitTestFunctions class is designed to perform unit tests for various functions related to processing file paths and data in a Spark environment. The tests cover functions such as fixing image file paths, constructing full file paths, extracting parent directories, and processing boundary data.
+
+Class Structure
+The UnitTestFunctions class inherits from unittest.TestCase, providing the framework for defining individual test cases. The class contains multiple methods, each representing a test case for a specific function. Below are the key methods:
+
+mock_fix_img_file_path
+Purpose: Mocks input and output dataframes for testing the fix_img_file_path function.
+Returns: Input and expected output dataframes.
+
+test_fix_img_file_path
+Purpose: Tests the fix_img_file_path function.
+Steps:
+Mocks input and expected output dataframes.
+Calls fix_img_file_path with input dataframe.
+Compares the resulting dataframe with the expected output.
+Assertion: Asserts that the resulting dataframe matches the expected output dataframe.
+
+test_full_file_path
+Purpose: Tests the full_file_path function.
+Steps:
+Defines input image and JSON file paths.
+Calls full_file_path with the input paths.
+Assertion: Asserts that the resulting full file path matches the expected output.
+
+mock_path_boundary_string_df
+Purpose: Mocks input and output dataframes for testing the path_boundary_string_df function.
+Returns: Input dataframe.
+
+test_path_boundary_string_df
+Purpose: Tests the path_boundary_string_df function.
+Steps:
+Mocks input dataframe.
+Calls path_boundary_string_df with the input dataframe.
+Assertion: Asserts that the resulting dataframe matches the expected output.
+
+mock_path_boundary_array_df
+Purpose: Mocks input and output dataframes for testing the path_boundary_array_df function.
+Returns: Input and expected output dataframes.
+
+test_path_boundary_array_df
+Purpose: Tests the path_boundary_array_df function.
+Steps:
+Mocks input and expected output dataframes.
+Calls path_boundary_array_df with the input dataframe.
+Assertion: Asserts that the resulting dataframe matches the expected output.
+
+test_extract_parent_directory
+Purpose: Tests the extract_parent_directory function.
+Steps:
+Defines an input file path.
+Calls extract_parent_directory with the input path.
+Assertion: Asserts that the resulting parent directory matches the expected output.
+
+mock_path_image_boundary_df
+Purpose: Mocks input dataframes for testing the path_image_boundary_df function.
+Returns: Dataframes containing boundary, image, and mapping data.
+
+test_path_image_boundary_df
+Purpose: Tests the path_image_boundary_df function.
+Steps:
+Mocks input dataframes.
+Calls path_image_boundary_df with the input dataframes.
+Assertion: Asserts that the resulting dataframe matches the expected output.
+
+Running Tests
+To execute the tests, run the script containing the UnitTestFunctions class with the unittest.main() function. The script will run all test cases and provide detailed output regarding the success or failure of each test.
 -----------------------------------------------------------------------------
 import warnings
 import unittest
