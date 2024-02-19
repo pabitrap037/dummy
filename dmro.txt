@@ -1,3 +1,86 @@
+class DefectDetectionMatcher:
+    def __init__(self, version: str, test: bool = False):
+        self.version = version
+        self.test = test
+
+    def read_tables(self):
+        if self.test:
+            self.dt = spark.read.table("dmro_raw_detection")
+            self.df = spark.read.table("dmro_raw_defect")
+        else:
+            self.dt = spark.read.table(f"dmro_raw.detection{self.version}")
+            self.df = spark.read.table(f"dmro_raw.defect{self.version}")
+
+    def create_temp_views(self):
+        self.dt.createOrReplaceTempView("dt")
+        self.df.createOrReplaceTempView("df")
+
+    def find_mismatches(self):
+        df_not_match = spark.sql("""
+            SELECT dt.uuid, dt.stream_id, 'detection' AS from_table
+            FROM dt
+            LEFT OUTER JOIN df ON dt.uuid = df.uuid
+            WHERE df.stream_id IS NULL AND dt.processed IS FALSE
+            UNION ALL
+            SELECT dt.uuid, dt.stream_id, 'defect' AS from_table
+            FROM df
+            LEFT OUTER JOIN dt ON dt.uuid = df.uuid
+            WHERE dt.stream_id IS NULL AND df.processed IS FALSE
+        """)
+        return df_not_match
+
+    def check_and_return_result(self):
+        self.read_tables()
+        self.create_temp_views()
+        df_not_match = self.find_mismatches()
+
+        if df_not_match.count() != 0:
+            print("Defect/detection uuid mismatch found.")
+            df_not_match = df_not_match.withColumn("reason", lit("the following 1-1 UUID does not match in defect & detections"))
+
+            df_final = {
+                "df": df_not_match,
+                "table_name": "defect_detection_uuid_match",
+                "data_layer": "exception",
+                "merge_schema": False
+            }
+            return df_final
+        else:
+            print("Defect/detection uuid match validation passed.")
+
+
+class InspectionRawToCurated:
+    def __init__(self, version: str, test: bool = False):
+        self.version = version
+        self.test = test
+
+    def inspection_validation(self):
+        if self.test:
+            df_tag = spark.sql(f"SELECT * FROM dmro_raw_tag{self.version} WHERE processed = False")
+        else:
+            df_tag = spark.sql(f"SELECT * FROM dmro_raw.tag{self.version} WHERE processed = False")
+
+        if df_tag.count != 0:
+            exception_df = df_tag.filter(
+                (df_tag['operation_code'].isNull() == True) | (df_tag['create_time'].isNull() == True)
+            )
+            if exception_df.count() > 0:
+                reason_df = exception_df.withColumn("reason", lit("operation code or create time is null"))
+                return [exception_df, df_tag]
+            else:
+                return [df_tag]
+        else:
+            print("No New Records")
+            return None
+
+
+# Example usage:
+defect_detection_matcher = DefectDetectionMatcher("your_version", test=True)
+result = defect_detection_matcher.check_and_return_result()
+inspection_raw_to_curated = InspectionRawToCurated("your_version", test=True)
+inspection_result = inspection_raw_to_curated.inspection_validation()
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 def uuid_defect_detection_match(version: str, test: bool=False):
 
     if test:
