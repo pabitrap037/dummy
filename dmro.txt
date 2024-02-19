@@ -1,3 +1,410 @@
+def uuid_defect_detection_match(version: str, test: bool=False):
+
+    if test:
+        dt = spark.read.table(f"dmro_raw_detection")
+        df = spark.read.table(f"dmro_raw_defect")
+    else:
+        dt = spark.read.table(f"dmro_raw.detection{version}")
+        df = spark.read.table(f"dmro_raw.defect{version}") 
+
+    dt.createOrReplaceTempView("dt")
+    df.createOrReplaceTempView("df")
+
+    ##to find all non-matching 1:1 uuid in detections and defects file
+    df_not_match = spark.sql("""
+        select dt.uuid, dt.stream_id, 'detection' as from_table
+        from dt
+        left outer join df
+        on dt.uuid = df.uuid
+        where df.stream_id is null and dt.processed is false
+        union all
+        select dt.uuid, dt.stream_id, 'defect' as from_table
+        from df
+        left outer join dt 
+        on dt.uuid = df.uuid 
+        where dt.stream_id is null and df.processed is false
+    """)
+
+    # df_not_match.display()
+
+    if df_not_match.count() != 0:
+        print("Defect/detection uuid mismatch found.")
+        df_not_match = df_not_match.withColumn("reason", lit("the following 1-1 UUID does not match in defect & detections"))
+
+        df_final = {
+            "df": df_not_match,
+            "table_name": "defect_detection_uuid_match", 
+            "data_layer": "exception",
+            "merge_schema": False
+        }
+        return df_final
+    
+    else:
+        print("Defect/detection uuid match validation passed.")
+
+
+def inspection_rawtocurated(version: str, test: bool=False):
+
+    ###inspection
+    def inspection_validation(version, test):
+        # v = add_underscore(version)
+        
+        if test:
+            df_tag = spark.sql(f"select * from dmro_raw_tag{version} where processed = False")
+        #read tag table and get latest timestamp data
+        else:
+            df_tag = spark.sql(f"select * from dmro_raw.tag{version} where processed = False")
+
+        if df_tag.count != 0:
+            exception_df=df_tag.filter(
+                (df_tag['operation_code'].isNull() == True) | (df_tag['create_time'].isNull() == True)
+            )
+            if exception_df.count() > 0:
+                reason_df = exception_df.withColumn("reason", lit("operation code or create time is null"))
+
+                return [exception_df, df_tag]
+            
+            else:
+                return [df_tag]
+            
+        else:
+            print("No New Records")
+            return
+
+    def inspection_curated_dataframe(validated_df: DataFrame):
+
+        df_tag = validated_df.withColumn('inspection_date', F.date_format(F.col('create_time'), 'yyyy-MM-dd'))\
+                    .withColumn('inspection_time', F.date_format(F.col('create_time'), 'HH:mm:ss'))
+
+        print("print df with columns split")
+        df_tag.display()
+
+        #select the necessary fields
+        df_tag = df_tag.select(
+            'part_number', 
+            'serial_number', 
+            'automated_disposition', 
+            'create_station', 
+            'inspection_index', 
+            'inspector_disposition', 
+            'inspection_facility', 
+            'operation_code', 
+            'ppi_type', 
+            'shop_visit', 
+            'stream_id', 
+            'inspection_date', 
+            'inspection_time'
+        )
+
+        #input new current timestamp 
+        df_tag = df_tag.withColumn("inspection_index",df_tag.inspection_index.cast(IntegerType())) \
+                    .withColumn("operation_code",df_tag.operation_code.cast(IntegerType())) \
+                    .withColumn("inspection_date",df_tag.inspection_date.cast(DateType())) \
+                    .withColumn("shop_visit",df_tag.shop_visit.cast(IntegerType()))
+                    # .withColumn("inspection_time",df_tag.inspection_time.cast('timestamp'))
+
+        df_tag.schema
+        df_tag.display()
+
+        df_tag_dict = {
+            "df": df_tag,
+            "table_name": "inspection", 
+            "data_layer": "curated",
+            "merge_schema": False
+        }
+
+        return df_tag_dict
+
+    insp_validation_dataframes = inspection_validation(version, test)
+
+    if len(insp_validation_dataframes) > 0:
+    
+        if len(insp_validation_dataframes) > 1:
+            exception_df_dict, validated_df_dict = insp_validation_dataframes
+
+        else:
+            validated_df_dict = insp_validation_dataframes[0]
+
+        curated_df_dict = inspection_curated_dataframe(validated_df_dict)
+
+        # if exception_df_dict doesn't exist, this line will throw NameError
+        try:
+            return [exception_df_dict, curated_df_dict]
+        
+        # if there's a NameError, return only curated_df_dict
+        except NameError:
+            return [curated_df_dict]
+        
+    else:
+        pass
+
+
+def defect_rawtocurated(version: str, test: bool=False):
+
+    def defect_validation(version, test):
+
+        #read tables from raw
+        if test:
+            df_tag = spark.read.table(f"dmro_raw_tag")    
+            print("tag from raw")
+            df_tag.display()
+
+            df_def = spark.read.table(f"dmro_raw_defect{version}")
+            print("defect from raw")
+            df_def.display()
+
+            df_ppi = spark.read.table("dmro_curated_ppi_airfoil_region")
+
+        else:
+            df_tag = spark.read.table(f"dmro_raw.tag{version}")
+            df_def = spark.read.table(f"dmro_raw.defect{version}")
+            df_ppi = spark.read.table("dmro_curated.ppi_airfoil_region")
+
+            
+        df_tag.createOrReplaceTempView("tag")
+        # df_def.createOrReplaceTempView("defect")
+        df_ppi.createOrReplaceTempView("ppi")
+
+        df_ppi.display()
+
+        # check for rows with null disposition or indication_type values and return as dataframe in a dictionary
+        exception_df = df_def.filter(
+            (df_def['disposition'].isNull() == True) | (df_def['`indication_type`'].isNull() == True)
+        )
+
+        if exception_df.count() > 0:
+            reason_df = exception_df.withColumn("reason", lit("disposition or indication type is null"))
+            df_def = df_def.filter(
+                (df_def['disposition'].isNotNull()) & (df_def['`indication_type`'].isNotNull())
+            )
+
+            return [reason_df, df_def]
+        
+        else:
+            return [df_def]
+            
+    def defect_curated_dataframe(validated_df: DataFrame):
+
+        validated_df.createOrReplaceTempView("defect")
+        # validated_df.display()
+
+        print("joining")
+
+        # sql statement with joins from tag to defect and ppi based on max timestamp
+        df = spark.sql("""
+            select tg.part_number,
+                tg.serial_number,
+                df.`Defect_Type` as defect_type,
+                df.size,
+                df.disposition as defect_disposition,
+                df.`Indication_Type` as ppi_region,
+                df.`Short_text` as short_text,
+                df.x,
+                df.y,
+                df.z,
+                df.`Analytics_Confidence` as analytics_confidence,
+                df.angle,
+                df.elongation,
+                df.uuid,
+                df.stream_id,
+                pp.airfoil_region
+            from tag as tg
+            left outer join defect as df
+            on df.stream_id = tg.stream_id 
+            left outer join ppi as pp
+            on pp.PPI_region = rtrim(df.`Indication_Type`) and pp.part_number = tg.part_number
+            where tg.processed = False
+        """)
+
+        print("defect joined table")
+        df.schema
+        df.display()
+
+        #input new current timestamp
+        if df.count != 0:
+            df = df.withColumn("size",df.size.cast(DoubleType()))\
+                    .withColumn("x",df.x.cast(DoubleType()))\
+                    .withColumn("y",df.y.cast(DoubleType()))\
+                    .withColumn("z",df.z.cast(DoubleType()))\
+                    .withColumn("analytics_confidence",df.analytics_confidence.cast(DoubleType()))\
+                    .withColumn("angle",df.angle.cast(DoubleType()))\
+                    .withColumn("elongation",df.elongation.cast(DoubleType()))\
+
+            print("writing defect curated table")
+            df.display()
+
+            df_dict = {
+                "df": df,
+                "table_name": "defect", 
+                "data_layer": "curated", 
+                "merge_schema": False
+            }
+
+            return df_dict
+                
+        else: 
+            print("No New Records")
+
+    def_validation_dataframes = defect_validation(version, test)
+
+    if len(def_validation_dataframes) > 0:
+    
+        if len(def_validation_dataframes) > 1:
+            exception_df_dict, validated_df_dict = def_validation_dataframes
+
+        else:
+            validated_df_dict = def_validation_dataframes[0]
+
+        curated_df_dict = defect_curated_dataframe(validated_df_dict)
+
+        # if exception_df_dict doesn't exist, this line will throw NameError
+        try:
+            return [exception_df_dict, curated_df_dict]
+        
+        # if there's a NameError, return only curated_df_dict
+        except NameError:
+            return [curated_df_dict]
+        
+    else:
+        pass
+
+###defect
+
+def defect_rawtocurated(version):
+    v = version
+    #read tables from raw
+    df_tag = spark.read.table(f"dmro_raw.tag{v}")
+    # df_tag = spark.sql(f"select * from dmro_raw.tag{v}")
+    print("tag from raw")
+    df_tag.display()
+    df_tag.createOrReplaceTempView("tag")
+    df_def = spark.read.table(f"dmro_raw.defect{v}")
+    print("defect from raw")
+    df_def.display()
+    df_ppi = spark.read.table("dmro_curated.ppi_airfoil_region")
+    # df_def.createOrReplaceTempView("defect")
+    df_ppi.createOrReplaceTempView("ppi")
+
+    
+    
+    df_ppi.display()
+
+    exception_df=df_def.filter((df_def['disposition'].isNull() == True) | (df_def['`indication type`'].isNull() == True))
+    if exception_df.count()>0:
+        reason_df = exception_df.withColumn("reason", lit("disposition or indication type is null"))
+        reason_df.write.format('delta').mode('append').option('header','true').option("delta.columnMapping.mode", "name").saveAsTable(f"dmro.defect_exception{v}")
+
+    df_def = df_def.filter((df_def['disposition'].isNotNull()) & (df_def['`indication type`'].isNotNull()))
+    df_def.createOrReplaceTempView("defect")
+    print("here")
+    df_def.display()
+    # df_def.display()
+
+    print("joining")
+    # sql statement with joins from tag to defect and ppi based on max timestamp
+    df = spark.sql("""
+        select tg.part_number,
+            tg.serial_number,
+            df.`Defect Type` as defect_type,
+            df.size,
+            df.disposition as defect_disposition,
+            df.`Indication Type` as ppi_region,
+            df.`Short text` as short_text,
+            df.x,
+            df.y,
+            df.z,
+            df.`Analytics Confidence` as analytics_confidence,
+            df.angle,
+            df.elongation,
+            df.uuid,
+            df.stream_id,
+            pp.airfoil_region
+        from tag as tg
+        left outer join defect as df
+        on df.stream_id = tg.stream_id 
+        left outer join ppi as pp
+        on pp.PPI_region = rtrim(df.`Indication Type`) and pp.part_number = tg.part_number
+        where tg.processed = False
+    """)
+
+    # df = spark.sql("""select tg.part_number, df.`Indication Type` as ppi_region, pp.airfoil_region from tag as tg left outer join defect as df on df.stream_id = tg.stream_id left outer join ppi as pp on pp.PPI_region = df.`Indication Type`""")
+
+    print("defect joined table")
+    df.schema
+    df.display()
+
+    #input new current timestamp
+    if df.count != 0:
+        df = df.withColumn("load_timestamp", F.current_timestamp())\
+                .withColumn("processed", lit(False))\
+                .withColumn("size",df.size.cast(DoubleType()))\
+                .withColumn("x",df.x.cast(DoubleType()))\
+                .withColumn("y",df.y.cast(DoubleType()))\
+                .withColumn("z",df.z.cast(DoubleType()))\
+                .withColumn("analytics_confidence",df.analytics_confidence.cast(DoubleType()))\
+                .withColumn("angle",df.angle.cast(DoubleType()))\
+                .withColumn("elongation",df.elongation.cast(DoubleType()))\
+
+        print("writing defect curated table")
+        df.display()
+
+        #write table to curated layer
+        def table_exists(path):
+            try:
+                dbutils.fs.ls(path)
+                return True
+            except:
+                return False
+            
+        if table_exists(f"dbfs:/mnt/dmro/dmro_curated{v}/defect{v}"):
+            df.write.format("delta").mode("append").option("appendSchema", "true").option("delta.columnMapping.mode", "name").saveAsTable(f"dmro_curated.defect{v}")
+        else:
+            df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").save(f"dbfs:/mnt/dmro/dmro_curated{v}/defect{v}")
+            spark.sql(f"create table if not exists dmro_curated.defect{v} using delta location 'dbfs:/mnt/dmro/dmro_curated{v}/defect{v}'")
+            
+    else: 
+         print("No New Records")   
+
+    return True
+
+def processed_true_raw(version):
+    v = version
+    ###processed true for raw layer tables/new function
+    df_tag_raw = spark.sql(f"select * from dmro_raw.tag{v}")
+    df_defect_raw = spark.sql(f"select * from dmro_raw.defect{v}")
+
+    df_updated_tag = df_tag_raw.withColumn("processed", F.when(F.col("processed") == False, True).otherwise(F.col("processed")))
+    df_updated_defect = df_defect_raw.withColumn("processed", F.when(F.col("processed") == False, True).otherwise(F.col("processed")))
+
+    # df_updated_tag.display()
+    # df_updated_defect.display()
+
+    df_updated_tag.write.format("delta").mode("overwrite").option("overwriteSchema", "true").option("delta.columnMapping.mode", "name").saveAsTable(f"dmro_raw.tag{v}")
+    df_updated_defect.write.format("delta").mode("overwrite").option("overwriteSchema", "true").option("delta.columnMapping.mode", "name").saveAsTable(f"dmro_raw.defect{v}")
+
+    return True
+
+#for changing the data type of inspection table of selected columns in curated layer
+# def datatype_change_inspection(version):
+#     v = version
+#     df_ins = spark.read.table(f"dmro_curated.inspection{v}")
+#     df_ins.withColumn("inspection_index",df_ins.inspection_index.cast('int'))
+#     df_ins.withColumn("operation_code",df_ins.operation_code.cast('int'))
+#     df_ins.withColumn("inspection_date",df_ins.inspection_date.cast('date'))
+#     df_ins.withColumn("inspection_time",df_ins.inspection_time.cast('time'))
+
+# #for changing the data type of defect table of selected columns in curated layer
+# def datatype_change_defect(version):
+#     v = version
+#     df_df = spark.read.table(f"dmro_curated.defect{v}")
+#     df_df.withColumn("x",df_df.x.cast('double'))
+#     df_df.withColumn("y",df_df.y.cast('double'))
+#     df_df.withColumn("z",df_df.z.cast('double'))
+#     df_df.withColumn("analytics_confidence",df_df.analytics_confidence.cast('double'))
+#     df_df.withColumn("angle",df_df.angle.cast('double'))
+#     df_df.withColumn("elongation",df_df.elongation.cast('double'))
+
+
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Documentation for UnitTestFunctions
 
