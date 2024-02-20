@@ -1,3 +1,222 @@
+class InspectionRawToCurated:
+    def __init__(self, version: str, test: bool = False):
+        self.version = version
+        self.test = test
+
+    def inspection_validation(self):
+        if self.test:
+            df_tag = spark.sql(f"select * from dmro_raw_tag{self.version} where processed = False")
+        else:
+            df_tag = spark.sql(f"select * from dmro_raw.tag{self.version} where processed = False")
+
+        if df_tag.count != 0:
+            exception_df = df_tag.filter(
+                (df_tag['operation_code'].isNull() == True) | (df_tag['create_time'].isNull() == True)
+            )
+            if exception_df.count() > 0:
+                reason_df = exception_df.withColumn("reason", lit("operation code or create time is null"))
+                return [exception_df, df_tag]
+            else:
+                return [df_tag]
+        else:
+            print("No New Records")
+            return
+
+    def inspection_curated_dataframe(self, validated_df: DataFrame):
+        df_tag = validated_df.withColumn('inspection_date', F.date_format(F.col('create_time'), 'yyyy-MM-dd')) \
+            .withColumn('inspection_time', F.date_format(F.col('create_time'), 'HH:mm:ss'))
+
+        print("print df with columns split")
+        df_tag.display()
+
+        # select the necessary fields
+        df_tag = df_tag.select(
+            'part_number',
+            'serial_number',
+            'automated_disposition',
+            'create_station',
+            'inspection_index',
+            'inspector_disposition',
+            'inspection_facility',
+            'operation_code',
+            'ppi_type',
+            'shop_visit',
+            'stream_id',
+            'inspection_date',
+            'inspection_time'
+        )
+
+        # input new current timestamp
+        df_tag = df_tag.withColumn("inspection_index", df_tag.inspection_index.cast(IntegerType())) \
+            .withColumn("operation_code", df_tag.operation_code.cast(IntegerType())) \
+            .withColumn("inspection_date", df_tag.inspection_date.cast(DateType())) \
+            .withColumn("shop_visit", df_tag.shop_visit.cast(IntegerType()))
+        # .withColumn("inspection_time",df_tag.inspection_time.cast('timestamp'))
+
+        df_tag.schema
+        df_tag.display()
+
+        df_tag_dict = {
+            "df": df_tag,
+            "table_name": "inspection",
+            "data_layer": "curated",
+            "merge_schema": False
+        }
+
+        return df_tag_dict
+
+    def process_inspection(self):
+        insp_validation_dataframes = self.inspection_validation()
+
+        if len(insp_validation_dataframes) > 0:
+
+            if len(insp_validation_dataframes) > 1:
+                exception_df_dict, validated_df_dict = insp_validation_dataframes
+            else:
+                validated_df_dict = insp_validation_dataframes[0]
+
+            curated_df_dict = self.inspection_curated_dataframe(validated_df_dict)
+
+            # if exception_df_dict doesn't exist, this line will throw NameError
+            try:
+                return [exception_df_dict, curated_df_dict]
+
+            # if there's a NameError, return only curated_df_dict
+            except NameError:
+                return [curated_df_dict]
+        else:
+            pass
+
+
+# Example usage:
+inspection_processor = InspectionRawToCurated("your_version", test=True)
+result = inspection_processor.process_inspection()
+class DefectRawToCurated:
+    def __init__(self, version: str, test: bool = False):
+        self.version = version
+        self.test = test
+
+    def defect_validation(self):
+        if self.test:
+            df_tag = spark.read.table("dmro_raw_tag")    
+            print("tag from raw")
+            df_tag.display()
+
+            df_def = spark.read.table(f"dmro_raw_defect{self.version}")
+            print("defect from raw")
+            df_def.display()
+
+            df_ppi = spark.read.table("dmro_curated_ppi_airfoil_region")
+        else:
+            df_tag = spark.read.table(f"dmro_raw.tag{self.version}")
+            df_def = spark.read.table(f"dmro_raw.defect{self.version}")
+            df_ppi = spark.read.table("dmro_curated.ppi_airfoil_region")
+            
+        df_tag.createOrReplaceTempView("tag")
+        df_ppi.createOrReplaceTempView("ppi")
+
+        df_ppi.display()
+
+        # check for rows with null disposition or indication_type values and return as dataframe in a dictionary
+        exception_df = df_def.filter(
+            (df_def['disposition'].isNull() == True) | (df_def['`indication_type`'].isNull() == True)
+        )
+
+        if exception_df.count() > 0:
+            reason_df = exception_df.withColumn("reason", lit("disposition or indication type is null"))
+            df_def = df_def.filter(
+                (df_def['disposition'].isNotNull()) & (df_def['`indication_type`'].isNotNull())
+            )
+
+            return [reason_df, df_def]
+        else:
+            return [df_def]
+            
+    def defect_curated_dataframe(self, validated_df: DataFrame):
+        validated_df.createOrReplaceTempView("defect")
+        print("joining")
+
+        # sql statement with joins from tag to defect and ppi based on max timestamp
+        df = spark.sql("""
+            select tg.part_number,
+                tg.serial_number,
+                df.`Defect_Type` as defect_type,
+                df.size,
+                df.disposition as defect_disposition,
+                df.`Indication_Type` as ppi_region,
+                df.`Short_text` as short_text,
+                df.x,
+                df.y,
+                df.z,
+                df.`Analytics_Confidence` as analytics_confidence,
+                df.angle,
+                df.elongation,
+                df.uuid,
+                df.stream_id,
+                pp.airfoil_region
+            from tag as tg
+            left outer join defect as df
+            on df.stream_id = tg.stream_id 
+            left outer join ppi as pp
+            on pp.PPI_region = rtrim(df.`Indication_Type`) and pp.part_number = tg.part_number
+            where tg.processed = False
+        """)
+
+        print("defect joined table")
+        df.schema
+        df.display()
+
+        # input new current timestamp
+        if df.count != 0:
+            df = df.withColumn("size", df.size.cast(DoubleType()))\
+                   .withColumn("x", df.x.cast(DoubleType()))\
+                   .withColumn("y", df.y.cast(DoubleType()))\
+                   .withColumn("z", df.z.cast(DoubleType()))\
+                   .withColumn("analytics_confidence", df.analytics_confidence.cast(DoubleType()))\
+                   .withColumn("angle", df.angle.cast(DoubleType()))\
+                   .withColumn("elongation", df.elongation.cast(DoubleType()))
+
+            print("writing defect curated table")
+            df.display()
+
+            df_dict = {
+                "df": df,
+                "table_name": "defect", 
+                "data_layer": "curated", 
+                "merge_schema": False
+            }
+
+            return df_dict
+                
+        else: 
+            print("No New Records")
+
+    def process_defect(self):
+        def_validation_dataframes = self.defect_validation()
+
+        if len(def_validation_dataframes) > 0:
+            if len(def_validation_dataframes) > 1:
+                exception_df_dict, validated_df_dict = def_validation_dataframes
+            else:
+                validated_df_dict = def_validation_dataframes[0]
+
+            curated_df_dict = self.defect_curated_dataframe(validated_df_dict)
+
+            # if exception_df_dict doesn't exist, this line will throw NameError
+            try:
+                return [exception_df_dict, curated_df_dict]
+            # if there's a NameError, return only curated_df_dict
+            except NameError:
+                return [curated_df_dict]
+        else:
+            pass
+
+# Example usage:
+defect_processor = DefectRawToCurated("your_version", test=True)
+result = defect_processor.process_defect()
+
+
+''''''''''''''''''''''''''''''''''''''
 class DefectDetectionMatcher:
     def __init__(self, version: str, test: bool = False):
         self.version = version
