@@ -1,3 +1,41 @@
+import warnings
+import unittest
+import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col, udf
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType, FloatType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+
+warnings.filterwarnings("ignore")
+
+
+class UnitTestFunctions(unittest.TestCase):
+    test = True
+    version = ''
+
+    def spallation_curated_dataframe(self):
+        schema_inp=StructType([
+            StructField('detections',StringType(),True),
+            StructField('file_path',StringType(),True)
+        ])
+        mock_data_input = {'team': 'A',
+                           'points': 1,
+                           'assists': 5,
+                           'all_star': True}
+        df_input = spark.createDataFrame([mock_data_input], schema=schema_inp)
+        dtypes_df = df_input.dtypes
+        return df_input, dtypes_df
+
+    def test_spallation_curated_dataframe(self):
+        input_df, dtypes_inp = self.spallation_curated_dataframe()
+        dtypes_exp = input_df.dtypes
+        self.assertTrue(dtypes_inp.equals(dtypes_exp))
+
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+--------------------------------
 class InspectionRawToCurated:
     def __init__(self, version: str, test: bool = False):
         self.version = version
