@@ -1,3 +1,20 @@
+ppi_region	full_spallation_percent	partial_spallation_percent	erosion_percent	burnthrough_percent	other_percent	stream_id	stream_label
+x1	0.1	0.2	0.03	0	0	xxxx-01	xxxx-01
+x2	0.7	0.13	0.02	0.09	0	xxxx-01	xxxx-01
+x3	0.3	0.8	0.2	0	0.02	xxxx-02	xxxx-02
+x4	0	0.05	0	0.01	0	xxxx-02	xxxx-02
+							
+							
+stream_id	stream_label	spallation					
+xxxx-01	xxxx-01	{full_spallation: [ {"ppi_region":"x1", "spallation_value":0.1}, {"ppi_region":"x2", "spallation_value":0.7}, {"ppi_region":"x3", "spallation_value":0.3}, {"ppi_region":"x4", "spallation_value":0.0} ], "partial_spallation": [ {"ppi_region":"x1", "spallation_value":0.2}, {"ppi_region":"x2", "spallation_value":0.13}, ... ] ... }					
+							
+							
+							
+xxxx-02	xxxx-02	{full_spallation: [ {"ppi_region":"x1", "spallation_value":0.1}, {"ppi_region":"x2", "spallation_value":0.7}, {"ppi_region":"x3", "spallation_value":0.3}, {"ppi_region":"x4", "spallation_value":0.0} ], "partial_spallation": [ {"ppi_region":"x1", "spallation_value":0.2}, {"ppi_region":"x2", "spallation_value":0.13}, ... ] ... }					
+							
+							
+							
+----------------------------------------------------------------
 import warnings
 import unittest
 import re
