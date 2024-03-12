@@ -1,4 +1,69 @@
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import collect_list, struct, col, lit, concat_ws
+
+# Assuming SparkSession is already initialized
+spark = SparkSession.builder \
+    .appName("Data Transformation") \
+    .getOrCreate()
+
+# Create DataFrame from provided data
+data = [
+    ("x1", 0.1, 0.2, 0.03, 0, 0, "xxxx-01", "xxxx-01"),
+    ("x2", 0.7, 0.13, 0.02, 0.09, 0, "xxxx-01", "xxxx-01"),
+    ("x3", 0.3, 0.8, 0.2, 0, 0.02, "xxxx-02", "xxxx-02"),
+    ("x4", 0, 0.05, 0, 0.01, 0, "xxxx-02", "xxxx-02")
+]
+columns = ["ppi_region", "full_spallation_percent", "partial_spallation_percent",
+           "erosion_percent", "burnthrough_percent", "other_percent",
+           "stream_id", "stream_label"]
+df = spark.createDataFrame(data, columns)
+
+# Group by stream_id and stream_label and collect list of structs for spallation
+result_df = df.groupby("stream_id", "stream_label").agg(
+    collect_list(
+        struct(
+            col("ppi_region").alias("ppi_region"),
+            col("full_spallation_percent").alias("spallation_value")
+        )
+    ).alias("full_spallation"),
+    collect_list(
+        struct(
+            col("ppi_region").alias("ppi_region"),
+            col("partial_spallation_percent").alias("spallation_value")
+        )
+    ).alias("partial_spallation")
+)
+
+# Concatenate the lists of structs into a single string with desired format
+result_df = result_df.withColumn(
+    "full_spallation",
+    to_json(struct(lit("full_spallation").alias("type"), col("full_spallation")))
+)
+
+result_df = result_df.withColumn(
+    "partial_spallation",
+    to_json(struct(lit("partial_spallation").alias("type"), col("partial_spallation")))
+)
+
+result_df = result_df.withColumn(
+    "spallation",
+    concat_ws(", ", 
+              lit('{"full_spallation": ['),
+              col("full_spallation"),
+              lit('], "partial_spallation": ['),
+              col("partial_spallation"),
+              lit(']}')
+             )
+)
+
+# Drop the full_spallation and partial_spallation columns
+result_df = result_df.drop("full_spallation", "partial_spallation")
+
+# Show the transformed DataFrame
+result_df.show(truncate=False)
+
+=========================================
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import collect_list, struct, col, create_map, lit, concat_ws
 
 # Assuming SparkSession is already initialized
