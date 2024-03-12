@@ -1,3 +1,63 @@
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import collect_list, struct, col, lit
+
+# Assuming SparkSession is already initialized
+spark = SparkSession.builder \
+    .appName("Data Transformation") \
+    .getOrCreate()
+
+# Create DataFrame from provided data
+data = [
+    ("x1", 0.1, 0.2, 0.03, 0, 0, "xxxx-01", "xxxx-01"),
+    ("x2", 0.7, 0.13, 0.02, 0.09, 0, "xxxx-01", "xxxx-01"),
+    ("x3", 0.3, 0.8, 0.2, 0, 0.02, "xxxx-02", "xxxx-02"),
+    ("x4", 0, 0.05, 0, 0.01, 0, "xxxx-02", "xxxx-02")
+]
+columns = ["ppi_region", "full_spallation_percent", "partial_spallation_percent",
+           "erosion_percent", "burnthrough_percent", "other_percent",
+           "stream_id", "stream_label"]
+df = spark.createDataFrame(data, columns)
+
+# Initialize an empty list to store results
+result_list = []
+
+# Iterate over distinct combinations of stream_id and stream_label
+for row in df.select("stream_id", "stream_label").distinct().collect():
+    stream_id = row.stream_id
+    stream_label = row.stream_label
+    
+    # Filter data for current combination of stream_id and stream_label
+    filtered_df = df.filter((col("stream_id") == stream_id) & (col("stream_label") == stream_label))
+    
+    # Collect full spallation data
+    full_spallation_data = filtered_df.select("ppi_region", "full_spallation_percent").collect()
+    full_spallation_list = [{"ppi_region": r.ppi_region, "spallation_value": r.full_spallation_percent} for r in full_spallation_data]
+    
+    # Collect partial spallation data
+    partial_spallation_data = filtered_df.select("ppi_region", "partial_spallation_percent").collect()
+    partial_spallation_list = [{"ppi_region": r.ppi_region, "spallation_value": r.partial_spallation_percent} for r in partial_spallation_data]
+    
+    # Construct JSON-like format
+    spallation_dict = {
+        "full_spallation": full_spallation_list,
+        "partial_spallation": partial_spallation_list
+    }
+    
+    # Append to result list
+    result_list.append((stream_id, stream_label, spallation_dict))
+
+# Create DataFrame from result list
+result_df = spark.createDataFrame(result_list, ["stream_id", "stream_label", "spallation"])
+
+# Convert DataFrame to JSON format
+json_result = result_df.toJSON().collect()
+
+# Print JSON result
+for json_string in json_result:
+    print(json_string)
+
+****************************************************************************
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import collect_list, struct, col, lit, concat_ws
 
