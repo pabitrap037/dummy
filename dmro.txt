@@ -1,4 +1,108 @@
 
+from pyspark.sql.functions import col
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType
+import json
+
+data = [
+    ("x1", 0.1, 0.2, 0.03, 0.09, 0.2, "xxxx-01", "xxxx-01"),
+    ("x2", 0.7, 0.13, 0.02, 0.09, 0.5, "xxxx-01", "xxxx-01"),
+    ("x3", 0.3, 0.8, 0.2, 0.8, 0.02, "xxxx-02", "xxxx-02"),
+    ("x4", 0.8, 0.05, 0.7, 0.01, 0.04, "xxxx-02", "xxxx-02")
+]
+columns = ["ppi_region", "full_spallation_percent", "partial_spallation_percent",
+           "erosion_percent", "burnthrough_percent", "other_percent",
+           "stream_id", "stream_label"]
+df = spark.createDataFrame(data, columns)
+
+#empty list to store results
+result_list = []
+for row in df.select("stream_id", "stream_label").distinct().collect():
+    stream_id = row.stream_id
+    stream_label = row.stream_label
+    
+    # Filter data for current combination of stream_id and stream_label
+    filtered_df = df.filter((col("stream_id") == stream_id) & (col("stream_label") == stream_label))
+    # display(filtered_df)
+    
+    #full spallation data
+    full_spallation_data = filtered_df.select("ppi_region", "full_spallation_percent").collect()
+    full_spallation_list = [{"ppi_region": r.ppi_region, "spallation_value": r.full_spallation_percent} 
+                            for r in full_spallation_data]
+    # partial spallation data
+    partial_spallation_data = filtered_df.select("ppi_region", "partial_spallation_percent").collect()
+    partial_spallation_list = [{"ppi_region": r.ppi_region, "spallation_value": r.partial_spallation_percent} 
+                               for r in partial_spallation_data]
+    
+    # erosion percent
+    erosion_percent_data = filtered_df.select("ppi_region", "erosion_percent").collect()
+    erosion_percent_list = [{"ppi_region": r.ppi_region, "erosion_percent": r.erosion_percent} 
+                               for r in erosion_percent_data]
+    
+    # burnthrough percent
+    burnthrough_percent_data = filtered_df.select("ppi_region", "burnthrough_percent").collect()
+    burnthrough_percent_list = [{"ppi_region": r.ppi_region, "burnthrough_percent": r.burnthrough_percent} 
+                               for r in burnthrough_percent_data]
+    
+    # other percent
+    other_percent_data = filtered_df.select("ppi_region", "other_percent").collect()
+    other_percent_list = [{"ppi_region": r.ppi_region, "other_percent": r.other_percent} 
+                               for r in other_percent_data]
+    
+    #JSON like format
+    spallation_dict = {
+        "full_spallation": full_spallation_list,  
+        "partial_spallation": partial_spallation_list,
+        "erosion": erosion_percent_list,
+        "burnthrough": burnthrough_percent_list,
+        "other": other_percent_list, 
+    }
+    
+    # Appending to result list
+    result_list.append((stream_id, stream_label, spallation_dict))
+
+print(result_list)
+
+# Create DataFrame from result list
+# schema=StructType([
+#     StructField('stream_id', StringType(),True),
+#     StructField('stream_label', StringType(),True),
+#     StructField('spallation',StructType([
+#         StructField('full_spallation',StructType([
+#             StructField('ppi_region',StringType(),True),
+#             StructField('spallation_value',DoubleType(),True)
+#         ]),True),
+#         StructField('partial_spallation',StructType([
+#             StructField('ppi_region',StringType(),True),
+#             StructField('spallation_value',DoubleType(),True)
+#         ]),True),
+#         StructField('erosion',StructType([
+#             StructField('ppi_region',StringType(),True),
+#             StructField('erosion_percent',DoubleType(),True)
+#         ]),True),
+#         StructField('burnthrough',StructType([
+#             StructField('ppi_region',StringType(),True),
+#             StructField('burnthrough_percent',DoubleType(),True)
+#         ]),True),
+#         StructField('other',StructType([
+#             StructField('ppi_region',StringType(),True),
+#             StructField('other_percent',DoubleType(),True)
+#         ]),True)
+#     ]),True)
+# ])
+result_df = spark.createDataFrame(result_list, schema)
+display(result_df)
+
+# Convert DataFrame to JSON format
+json_result = result_df.toJSON().collect()
+
+# Print JSON result
+for json_string in json_result:
+    print(json_string)
+json_object = json.dumps(result_list, indent = 4) 
+ 
+# Print JSON object
+print(json_object)
++++++++++++++++++++++++++++++++++++++++++++++++++++++
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import collect_list, struct, col, lit
 
