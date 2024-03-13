@@ -1,3 +1,77 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType, MapType, DoubleType
+
+# Initialize SparkSession
+spark = SparkSession.builder \
+    .appName("example") \
+    .getOrCreate()
+
+# Your data and schema definition remain unchanged
+
+# Empty list to store dictionaries
+result_list = []
+
+# Iterate over distinct stream_id and stream_label combinations
+for row in df.select("stream_id", "stream_label").distinct().collect():
+    stream_id = row.stream_id
+    stream_label = row.stream_label
+    
+    # Filter data for current combination of stream_id and stream_label
+    filtered_df = df.filter((col("stream_id") == stream_id) & (col("stream_label") == stream_label))
+    
+    # Full spallation data for current combination
+    region_data = filtered_df.select("ppi_region", "full_spallation_percent", "partial_spallation_percent",
+                                      "erosion_percent", "burnthrough_percent", "other_percent").collect()
+    
+    # List to hold region dictionaries
+    region_list = []
+    
+    # Iterate over regions in the filtered data
+    for r in region_data:
+        # Dictionary to hold damage information for each region
+        damage_dict = {
+            "full_spallation": float(r.full_spallation_percent),
+            "partial_spallation": float(r.partial_spallation_percent),
+            "erosion": float(r.erosion_percent),
+            "burnthrough": float(r.burnthrough_percent),
+            "other": float(r.other_percent)
+        }
+        
+        # Dictionary to hold region information
+        region_dict = {"region_name": r.ppi_region, "damages": damage_dict}
+        
+        # Append region dictionary to the list
+        region_list.append(region_dict)
+    
+    # Dictionary to hold stream information
+    stream_dict = {
+        "stream_id": stream_id,
+        "stream_label": stream_label,
+        "regions": region_list
+    }
+    
+    # Append stream dictionary to the result list
+    result_list.append(stream_dict)
+
+# Define schema for DataFrame
+schema = StructType([
+    StructField("stream_id", StringType(), True),
+    StructField("stream_label", StringType(), True),
+    StructField("regions", ArrayType(
+        StructType([
+            StructField("region_name", StringType(), True),
+            StructField("damages", MapType(StringType(), DoubleType()), True)
+        ])
+    ), True)
+])
+
+# Create DataFrame
+result_df = spark.createDataFrame(result_list, schema)
+
+# Show DataFrame
+result_df.show(truncate=False)
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 schema = StructType([
     StructField("region_name", StringType(), True),
     StructField("damages", ArrayType(
