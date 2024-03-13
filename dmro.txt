@@ -1,5 +1,19 @@
+schema = StructType([
+    StructField("region_name", StringType(), True),
+    StructField("damages", ArrayType(
+        StructType([
+            StructField("damage_type", StringType(), True),
+            StructField("damage_percentage", FloatType(), True)
+        ])
+    ))
+])
 
+# Create DataFrame from list of dictionaries
+result_df = spark.createDataFrame(result_list, schema)
 
+# Show DataFrame
+result_df.show(truncate=False)
+=========================================================
 from pyspark.sql import Row
 from pyspark.sql.functions import col
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType
