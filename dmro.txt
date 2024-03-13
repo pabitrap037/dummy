@@ -1,3 +1,49 @@
+
+
+from pyspark.sql import Row
+from pyspark.sql.functions import col
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType
+import json
+
+# Your data and schema definition remain unchanged
+
+# Empty list to store dictionaries
+result_list = []
+
+# Iterate over distinct stream_id and stream_label combinations
+for row in df.select("stream_id", "stream_label").distinct().collect():
+    stream_id = row.stream_id
+    stream_label = row.stream_label
+    
+    # Filter data for current combination of stream_id and stream_label
+    filtered_df = df.filter((col("stream_id") == stream_id) & (col("stream_label") == stream_label))
+    
+    # Full spallation data for current combination
+    region_data = filtered_df.select("ppi_region", "full_spallation_percent", "partial_spallation_percent",
+                                      "erosion_percent", "burnthrough_percent", "other_percent").collect()
+    
+    # Iterate over regions in the filtered data
+    for r in region_data:
+        # Dictionary to hold region information
+        region_dict = {"region_name": r.ppi_region, "damages": []}
+        
+        # Append damage type and percentage to the damages list
+        region_dict["damages"].append({"damage_type": "full_spallation", "damage_percentage": float(r.full_spallation_percent)})
+        region_dict["damages"].append({"damage_type": "partial_spallation", "damage_percentage": float(r.partial_spallation_percent)})
+        region_dict["damages"].append({"damage_type": "erosion", "damage_percentage": float(r.erosion_percent)})
+        region_dict["damages"].append({"damage_type": "burnthrough", "damage_percentage": float(r.burnthrough_percent)})
+        region_dict["damages"].append({"damage_type": "other", "damage_percentage": float(r.other_percent)})
+        
+        # Append region dictionary to the result list
+        result_list.append(region_dict)
+
+# Convert result list to JSON format
+json_result = json.dumps(result_list, indent=4)
+
+# Print JSON result
+print(json_result)
+
+=======================================================
 [
       {
         "region_name": "x1",
