@@ -1,3 +1,32 @@
+[
+      {
+        "region_name": "x1",
+        "damages": [
+          {
+            "damage_type": "full_spallation",
+            "damage_percentage": 0.1
+          },
+          {
+            "damage_type": "partial_spallation",
+            "damage_percentage": 0.2
+          }
+        ]
+      },
+      {
+        "region_name": "x2",
+        "damages: [
+          {
+            "damage_type": "full_spallation",
+            "damage_percentage": 0.05
+          },
+          {
+            "damage_type": "partial_spallation",
+            "damage_percentage": 0.32
+          }
+        ]
+     }
+]
+
 from pyspark.sql.functions import col
 from pyspark.sql import Row
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType
