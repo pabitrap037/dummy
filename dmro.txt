@@ -1,3 +1,11 @@
+spallation_type = ['Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Other', 'Other', 'Other', 'Other', 'Other', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Erosion', 'Erosion', 'Erosion', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Other', 'Other']
+
+ppi_region_percent = [0.133, 0, 0.041, 0.007, 0.007, 0.5, 0.358, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.013, 0, 0.101, 0.02, 0.08, 0.091, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+airfoil_region_percent = [0.045, 0.045, 0.045, 0.046, 0.337, 0.337, 0.337, 0.052, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.046, 0.046, 0.046, 0.052, 0.052, 0.052, 0, 0, 0, 0, 0, 0, 0, 0]
+ppi_region = ['x1', 'x2', 'x3', 'y1', 'x1', 'x2', 'x3', 'y1', 'x1', 'x2', 'x3', 'y1', 'x1', 'x2', 'x3', 'y1', 'x1', 'x2', 'x3', 'y1', 'y4', 'y2', 'y3', 'y4', 'y2', 'y3', 'y4', 'y2', 'y3', 'y4', 'y2', 'y3', 'y4', 'y2', 'y3']
+'airfoil_region': ['Backing Radius', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side']
+****************************************************************
 print("Length of 'stream_id':", len(dict_exp['stream_id']))
 print("Length of 'part_number':", len(dict_exp['part_number']))
 print("Length of 'serial_number':", len(dict_exp['serial_number']))
