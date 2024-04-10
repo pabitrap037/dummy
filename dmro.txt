@@ -1,4 +1,55 @@
+schema = StructType([
+    StructField("system_def_id", StringType(), nullable=True),
+    StructField("stream_id", StringType(), nullable=True),
+    StructField("part_number", StringType(), nullable=True),
+    StructField("serial_number", StringType(), nullable=True),
+    StructField("shop_visit", IntegerType(), nullable=True),
+    StructField("create_station", StringType(), nullable=True),
+    StructField("inspection_index", IntegerType(), nullable=True),
+    StructField("airfoil_region", StringType(), nullable=True),
+    StructField("ppi_region", StringType(), nullable=True),
+    StructField("spallation_type", StringType(), nullable=False),
+    StructField("ppi_region_percent", DoubleType(), nullable=True),
+    StructField("airfoil_region_percent", DoubleType(), nullable=True),
+    StructField("ESN", StringType(), nullable=True),
+    StructField("engine_flight_hours", IntegerType(), nullable=True),
+    StructField("engine_cycles", IntegerType(), nullable=True),
+    StructField("engine_operator", StringType(), nullable=True),
+    StructField("casting_vendor", StringType(), nullable=True),
+    StructField("coating_vendor", StringType(), nullable=True),
+    StructField("coating_gain", DoubleType(), nullable=True),
+    StructField("coating_date", DateType(), nullable=True),
+    StructField("hole_drill_vendor", StringType(), nullable=True),
+    StructField("airflow_4800", DoubleType(), nullable=True),
+    StructField("airflow_4802", DoubleType(), nullable=True)
+])
+dict_spall = {
+    'stream_id': ['xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01'],
+    'part_number': ['30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501'],
+    'serial_number': ['aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122'],
+    'shop_visit': [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+    'create_station': ['Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial'],
+    'inspection_index': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    'airfoil_region': ['Flat Side', 'Flat Side', 'Flat Side', 'Backing Radius', 'Flat Side','Flat Side', 'Backing Radius', 'Flat Side', 'Flat Side', 'Backing Radius','Backing Radius', 'Flat Side', 'Flat Side', 'Flat Side', 'Backing Radius','Flat Side', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Flat Side','Backing Radius', 'Backing Radius', 'Flat Side', 'Flat Side', 'Backing Radius','Backing Radius', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius','Backing Radius', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side'],
+    'ppi_region': ['y1', 'y3', 'y4', 'x1', 'y4', 'y2', 'x2', 'y1', 'y3', 'x3', 'x1', 'y1', 'y3', 'y2', 'x2', 'y4', 'x3', 'y3', 'x2', 'x1', 'y1', 'y4', 'y2', 'x3', 'x1', 'x2', 'x2', 'x3', 'x1', 'y3', 'y1', 'y4', 'x1', 'x2', 'x3'],
+    'spallation_type': ['Full Spallation', 'Full Spallation', 'Full Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Other', 'Other', 'Other', 'Other', 'Other', 'Other'],
+    'ppi_region_percent': [0.007, 0, 0.101, 0.007, 0.091, 0.02, 0.5, 0, 0.08, 0.358, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.133, 0, 0.041, 0.013, 0, 0, 0, 0, 0, 0, 0],
+    'airfoil_region_percent': [0.046, 0.046, 0.046, 0.337, 0.052, 0.052, 0.337, 0.052, 0.052, 0.337, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.045, 0.045, 0.045, 0.046, 0, 0, 0, 0, 0, 0, 0],
+    'ESN': ['ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11'],
+    'engine_flight_hours': [500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500],
+    'engine_cycles': [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+    'engine_operator': ['Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1'],
+    'casting_vendor': ['vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1'],
+    'coating_vendor': ['cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2'],
+    'coating_gain': [4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3],
+    'coating_date': ['11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023', '11/11/2023'],
+    'hole_drill_vendor': ['hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1'],
+    'airflow_4800': [78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5],
+    'airflow_4802': [-98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5]
+}
 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  |-- stream_id: string (nullable = true)
  |-- part_number: string (nullable = true)
  |-- serial_number: string (nullable = true)
