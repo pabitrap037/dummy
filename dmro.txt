@@ -1,3 +1,9 @@
+'airfoil_region': ['Flat Side', 'Flat Side', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Flat Side', 'Flat Side', 'Flat Side', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side', 'Backing Radius', 'Flat Side', 'Flat Side', 'Backing Radius', 'Flat Side', 'Flat Side', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius', 'Flat Side', 'Flat Side'],
+    'ppi_region': ['y2', 'y1', 'x1', 'x3', 'y3', 'x2', 'y4', 'x1', 'y1', 'y3', 'y2', 'x2', 'y4', 'x3', 'x2', 'x3', 'x1', 'y3', 'y1', 'y4', 'y2', 'x1', 'y4', 'y2', 'x2', 'y1', 'y3', 'x3', 'y3', 'x2', 'y1', 'x1', 'x3', 'y4', 'y2'],
+    'spallation_type': ['Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Other', 'Other', 'Other', 'Other', 'Other', 'Other', 'Other', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough'],
+    'ppi_region_percent': [0.013, 0.007, 0.133, 0.041, 0.0, 0.0, 0.101, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.007, 0.091, 0.02, 0.5, 0.0, 0.08, 0.358, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'airfoil_region_percent': [0.046, 0.046, 0.045, 0.045, 0.046, 0.045, 0.046, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.337, 0.052, 0.052, 0.337, 0.052, 0.052, 0.337, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 import warnings
 import unittest
 import re
