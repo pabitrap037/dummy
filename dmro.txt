@@ -1,3 +1,26 @@
+print("Length of 'stream_id':", len(dict_exp['stream_id']))
+print("Length of 'part_number':", len(dict_exp['part_number']))
+print("Length of 'serial_number':", len(dict_exp['serial_number']))
+print("Length of 'shop_visit':", len(dict_exp['shop_visit']))
+print("Length of 'create_station':", len(dict_exp['create_station']))
+print("Length of 'inspection_index':", len(dict_exp['inspection_index']))
+print("Length of 'airfoil_region':", len(dict_exp['airfoil_region']))
+print("Length of 'ppi_region':", len(dict_exp['ppi_region']))
+print("Length of 'spallation_type':", len(dict_exp['spallation_type']))
+print("Length of 'ppi_region_percent':", len(dict_exp['ppi_region_percent']))
+print("Length of 'airfoil_region_percent':", len(dict_exp['airfoil_region_percent']))
+print("Length of 'ESN':", len(dict_exp['ESN']))
+print("Length of 'engine_flight_hours':", len(dict_exp['engine_flight_hours']))
+print("Length of 'engine_cycles':", len(dict_exp['engine_cycles']))
+print("Length of 'engine_operator':", len(dict_exp['engine_operator']))
+print("Length of 'casting_vendor':", len(dict_exp['casting_vendor']))
+print("Length of 'coating_vendor':", len(dict_exp['coating_vendor']))
+print("Length of 'coating_gain':", len(dict_exp['coating_gain']))
+print("Length of 'hole_drill_vendor':", len(dict_exp['hole_drill_vendor']))
+print("Length of 'airflow_4800':", len(dict_exp['airflow_4800']))
+print("Length of 'airflow_4802':", len(dict_exp['airflow_4802']))
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 dict_exp = {
             'stream_id': ['xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01'],
             'part_number': ['30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501'],
