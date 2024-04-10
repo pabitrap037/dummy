@@ -1,3 +1,549 @@
+import warnings
+import unittest
+import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col,udf
+from pyspark.sql.types import StructType, StructField, StringType,BooleanType,DoubleType,IntegerType,DateType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+from datetime import datetime
+warnings.filterwarnings("ignore")
+
+class UnitTestFunctions(unittest.TestCase):
+    test=True
+    version=''
+
+    def mock_data_spallation(self):
+        #spallation table
+        schema_spall=StructType([
+            StructField('part_number', StringType(), True),
+            StructField('serial_number', StringType(), True),
+            StructField('shop_visit', IntegerType(), True),
+            StructField('create_station', StringType(), True),
+            StructField('inspection_index', IntegerType(), True),
+            StructField('ppi_region', StringType(), True),
+            StructField('full_spallation', BooleanType(), True),
+            StructField('full_spallation_percent', DoubleType(), True),
+            StructField('partial_spallation', BooleanType(), True),
+            StructField('partial_spallation_percent', DoubleType(), True),
+            StructField('erosion', BooleanType(), True),
+            StructField('erosion_percent', DoubleType(), True),
+            StructField('crack', BooleanType(), True),
+            StructField('burnthrough', BooleanType(), True),
+            StructField('burnthrough_percent', DoubleType(), True),
+            StructField('other', BooleanType(), True),
+            StructField('other_percent', DoubleType(), True),
+            StructField('stream_id', StringType(), True),
+            StructField('processed',BooleanType(),True)
+        ])
+        dict_spall = {
+            'part_number': ['30G5501','30G5501','30G5501','30G5501','30G5501','30G5501','30G5501','30G5501'],
+            'serial_number': ['aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122'],
+            'shop_visit': [10, 10, 10, 10, 10, 10, 10, 10],
+            'create_station': ['Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial'],
+            'inspection_index': [3, 3, 3, 3, 3, 3, 3, 3],
+            'ppi_region': ['x1', 'x2', 'x3', 'y1', 'y2', 'y3', 'y4', 'x2'],
+            'full_spallation': [True, False, True, True, True, False, True, True],
+            'full_spallation_percent': [0.133, 0.0, 0.041, 0.007, 0.013, 0.0, 0.101, 0.2],
+            'partial_spallation': [True, True, True, False, True, True, True, False],
+            'partial_spallation_percent': [0.007, 0.5, 0.358, 0.0, 0.02, 0.08, 0.091, 0.0],
+            'erosion': [False, False, False, False, False, False, False, False],
+            'erosion_percent': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            'crack': [False, False, False, False, False, False, False, False],
+            'burnthrough': [False, False, False, False, False, False, False, False],
+            'burnthrough_percent': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            'other': [False, False, False, False, False, False, False, False],
+            'other_percent': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            'stream_id': ['xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01'],
+            'processed': [False, False, False, False, False, False, False, True]
+        }
+        rows_inp_spall = [
+            {'part_number': pn ,'serial_number': sn, 'shop_visit':sv ,'create_station':cs,'inspection_index':ii,'ppi_region':ppi,'full_spallation':fs,'full_spallation_percent':fp,'partial_spallation':ps,'partial_spallation_percent':pp,'erosion':er,'erosion_percent':ep,'crack':ck,'burnthrough':bn,'burnthrough_percent':bp,'other':ot,'other_percent':op,'stream_id':si,'processed':pr}
+            for pn,sn,sv,cs,ii,ppi,fs,fp,ps,pp,er,ep,ck,bn,bp,ot,op,si,pr in zip(
+                dict_spall['part_number'],
+                dict_spall['serial_number'],
+                dict_spall['shop_visit'],
+                dict_spall['create_station'],
+                dict_spall['inspection_index'],
+                dict_spall['ppi_region'],
+                dict_spall['full_spallation'],
+                dict_spall['full_spallation_percent'],
+                dict_spall['partial_spallation'],
+                dict_spall['partial_spallation_percent'],
+                dict_spall['erosion'],
+                dict_spall['erosion_percent'],
+                dict_spall['crack'],
+                dict_spall['burnthrough'],
+                dict_spall['burnthrough_percent'],
+                dict_spall['other'],
+                dict_spall['other_percent'],
+                dict_spall['stream_id'],
+                dict_spall['processed']
+            )
+        ]
+        spall_df=spark.createDataFrame(rows_inp_spall,schema=schema_spall)
+        spall_df.createOrReplaceTempView('spallation')
+
+        #ppi_airfoil_region table
+        schema_ppi=StructType([
+            StructField('part_number', StringType(), True),
+            StructField('inspection_type', StringType(), True),
+            StructField('airfoil_region', StringType(), True),
+            StructField('ppi_region', StringType(), True),
+            StructField('surface_area', DoubleType(), True),
+            StructField('ppi_airfoil_ratio', DoubleType(), True)
+        ])
+        dict_ppi = {
+            'part_number':['30G5501','30G5501','30G5501','30G5501','30G5501','30G5501','30G5501','30G5501'],
+            'inspection_type': ['LPPI_Spall','LPPI_Spall','LPPI_Spall','LPPI_Spall','LPPI_Spall','LPPI_Spall','LPPI_Spall','LPPI_Spall'],
+            'airfoil_region': ['Backing Radius','Backing Radius','Backing Radius','Flat Side','Flat Side','Flat Side','Flat Side','Forward Ledge'],
+            'ppi_region': ['x1','x2','x3','y1','y2','y3','y4','z1'],
+            'surface_area': [0.4,0.7,0.9,0.1,0.3,0.08,0.32,0.33],
+            'ppi_airfoil_ratio':[0.2,0.35,0.45,0.125,0.375,0.1,0.4,0.1]
+        }
+        rows_inp_ppi = [
+            {'part_number': pn ,'inspection_type': it, 'airfoil_region':ar ,'ppi_region':pr,'surface_area':sa,'ppi_airfoil_ratio':par}
+            for pn,it,ar,pr,sa,par in zip(
+                dict_ppi['part_number'],
+                dict_ppi['inspection_type'],
+                dict_ppi['airfoil_region'],
+                dict_ppi['ppi_region'],
+                dict_ppi['surface_area'],
+                dict_ppi['ppi_airfoil_ratio']
+            )
+        ]
+        ppi_ar_df=spark.createDataFrame(rows_inp_ppi,schema=schema_ppi)
+        ppi_ar_df.createOrReplaceTempView('ppi_region')
+
+        #casting table
+        schema_cast=StructType([
+            StructField('serial_number', StringType(), True),
+            StructField('casting_vendor', StringType(), True)
+        ])
+        dict_cast = {
+            'serial_number': ['aabbcc001122', 'aabbcc001133'],
+            'casting_vendor': ['vendor1', 'vendor33']
+        }
+        rows_inp_cast = [
+            {'serial_number': sn ,'casting_vendor': cv}
+            for sn,cv in zip(
+                dict_cast['serial_number'],
+                dict_cast['casting_vendor']
+            )
+        ]
+        cast_df=spark.createDataFrame(rows_inp_cast,schema=schema_cast)
+        cast_df.createOrReplaceTempView('casting')
+        
+        #engine table
+        schema_eng=StructType([
+            StructField('serial_number', StringType(), True),
+            StructField('ESN', StringType(), True),
+            StructField('engine_flight_hours', IntegerType(), True),
+            StructField('engine_cycles', IntegerType(), True),
+            StructField('engine_operator', StringType(), True)
+        ])
+        dict_eng = {
+            'serial_number': ['aabbcc001122', 'aabbcc001144'],
+            'ESN': ['ESN11', 'ESN44'],
+            'engine_flight_hours': [500,400],
+            'engine_cycles': [50,40],
+            'engine_operator': ['Operator1','Operator4']    
+        }
+        rows_inp_eng = [
+            {'serial_number': sn ,'ESN': esn,'engine_flight_hours':efh,'engine_cycles':ec,'engine_operator':ep}
+            for sn,esn,efh,ec,ep in zip(
+                dict_eng['serial_number'],
+                dict_eng['ESN'],
+                dict_eng['engine_flight_hours'],
+                dict_eng['engine_cycles'],
+                dict_eng['engine_operator']
+            )
+        ]
+        engine_df=spark.createDataFrame(rows_inp_eng,schema=schema_eng)
+        engine_df.createOrReplaceTempView('engine')
+        
+        #coat table
+        schema_coat=StructType([
+            StructField('serial_number', StringType(), True),
+            StructField('coating_vendor', StringType(), True),
+            StructField('coating_gain', DoubleType(), True),
+            StructField('coating_date',DateType(),True)
+        ])
+        dict_coat = {
+            'serial_number': ['aabbcc001122', 'aabbcc001133'],
+            'coating_vendor': ['cvendor2', 'cvendor3'],
+            'coating_gain': [4.3,3.5],
+            'coating_date':[datetime.strptime('2023-11-11','%Y-%m-%d'),datetime.strptime('2023-11-01','%Y-%m-%d')] 
+        }
+        rows_inp_coat = [
+            {'serial_number': sn ,'coating_vendor': cv,'coating_gain':cg,'coating_date':cd}
+            for sn,cv,cg,cd in zip(
+                dict_coat['serial_number'],
+                dict_coat['coating_vendor'],
+                dict_coat['coating_gain'],
+                dict_coat['coating_date']
+            )
+        ]
+        coat_df=spark.createDataFrame(rows_inp_coat,schema=schema_coat)
+        coat_df.createOrReplaceTempView('coat')
+        
+        #holedrill table
+        schema_hole=StructType([
+            StructField('serial_number', StringType(), True),
+            StructField('hole_drill_vendor', StringType(), True)
+        ])
+        dict_hole = {
+            'serial_number': ['aabbcc001122', 'aabbcc001132'],
+            'hole_drill_vendor': ['hvendor1','hvendor2'] 
+        }
+        rows_inp_hole = [
+            {'serial_number': sn ,'hole_drill_vendor': hv}
+            for sn,hv in zip(
+                dict_hole['serial_number'],
+                dict_hole['hole_drill_vendor']
+            )
+        ]
+        hole_df=spark.createDataFrame(rows_inp_hole,schema=schema_hole)
+        hole_df.createOrReplaceTempView('hole')
+
+        #airflow table
+        schema_airflow=StructType([
+            StructField('serial_number', StringType(), True),
+            StructField('4800', DoubleType(), True),
+            StructField('4802', DoubleType(), True)
+        ])
+        dict_airflow = {
+            'serial_number': ['aabbcc001122', 'aabbcc001132'],
+            '4800': [78.5,58.5],
+            '4802': [-98.5,-28.5] 
+        }
+        rows_inp_airflow = [
+            {'serial_number': sn ,'4800': n1,'4802':n2}
+            for sn,n1,n2 in zip(
+                dict_airflow['serial_number'],
+                dict_airflow['4800'],
+                dict_airflow['4802']
+            )
+        ]
+        airflow_df=spark.createDataFrame(rows_inp_airflow,schema=schema_airflow)
+        airflow_df.createOrReplaceTempView('airflow_group')
+
+        #expected dtaframe
+        schema_exp = StructType([
+            StructField("system_def_id", StringType(), True),
+            StructField("stream_id", StringType(), True),
+            StructField("part_number", StringType(), True),
+            StructField("serial_number", StringType(), True),
+            StructField("shop_visit", IntegerType(), True),
+            StructField("create_station", StringType(), True),
+            StructField("inspection_index", IntegerType(), True),
+            StructField("airfoil_region", StringType(), True),
+            StructField("ppi_region", StringType(), True),
+            StructField("spallation_type", StringType(), False),
+            StructField("ppi_region_percent", DoubleType(), True),
+            StructField("airfoil_region_percent", DoubleType(), True),
+            StructField("ESN", StringType(), True),
+            StructField("engine_flight_hours", IntegerType(), True),
+            StructField("engine_cycles", IntegerType(), True),
+            StructField("engine_operator", StringType(), True),
+            StructField("casting_vendor", StringType(), True),
+            StructField("coating_vendor", StringType(), True),
+            StructField("coating_gain", DoubleType(), True),
+            StructField("hole_drill_vendor", StringType(), True),
+            StructField("airflow_4800", DoubleType(), True),
+            StructField("airflow_4802", DoubleType(), True)
+        ])
+        dict_exp = {
+            'stream_id': ['xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01'],
+            'part_number': ['30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501'],
+            'serial_number': ['aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122'],
+            'shop_visit': [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+            'create_station': ['Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial'],
+            'inspection_index': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+            'airfoil_region': ['Flat Side', 'Flat Side', 'Flat Side', 'Backing Radius', 'Flat Side','Flat Side', 'Backing Radius', 'Flat Side', 'Flat Side', 'Backing Radius','Backing Radius', 'Flat Side', 'Flat Side', 'Flat Side', 'Backing Radius','Flat Side', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Flat Side','Backing Radius', 'Backing Radius', 'Flat Side', 'Flat Side', 'Backing Radius','Backing Radius', 'Backing Radius', 'Flat Side', 'Backing Radius', 'Backing Radius','Backing Radius', 'Flat Side', 'Flat Side', 'Flat Side', 'Flat Side'],
+            'ppi_region': ['y1', 'y3', 'y4', 'x1', 'y4', 'y2', 'x2', 'y1', 'y3', 'x3', 'x1', 'y1', 'y3', 'y2', 'x2', 'y4', 'x3', 'y3', 'x2', 'x1', 'y1', 'y4', 'y2', 'x3', 'x1', 'x2', 'x2', 'x3', 'x1', 'y3', 'y1', 'y4', 'x1', 'x2', 'x3'],
+            'spallation_type': ['Full Spallation', 'Full Spallation', 'Full Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Other', 'Other', 'Other', 'Other', 'Other', 'Other'],
+            'ppi_region_percent': [0.007, 0.0, 0.101, 0.007, 0.091, 0.02, 0.5, 0.0, 0.08, 0.358, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.133, 0, 0.041, 0.013, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            'airfoil_region_percent': [0.046, 0.046, 0.046, 0.337, 0.052, 0.052, 0.337, 0.052, 0.052, 0.337, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.045, 0.045, 0.045, 0.046, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            'ESN': ['ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11', 'ESN11'],
+            'engine_flight_hours': [500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500],
+            'engine_cycles': [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+            'engine_operator': ['Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1', 'Operator1'],
+            'casting_vendor': ['vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1', 'vendor1'],
+            'coating_vendor': ['cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2', 'cvendor2'],
+            'coating_gain': [4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3, 4.3],
+            'hole_drill_vendor': ['hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1', 'hvendor1'],
+            'airflow_4800': [78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5, 78.5],
+            'airflow_4802': [-98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5, -98.5]
+        }
+        rows_inp_exp = [
+            {'stream_id': si,'part_number': pn, 'serial_number': sn, 'shop_visit': sv, 'create_station': cs, 'inspection_index': ii, 'airfoil_region':ar,'ppi_region': ppi,'spallation_type':st,'ppi_region_percent':prp,'airfoil_region_percent': arp, 'ESN': esn, 'engine_flight_hours': efh,'engine_cycles': ec, 'engine_operator': eo, 'casting_vendor': cv, 'coating_vendor': cov, 'coating_gain': cg, 'hole_drill_vendor': hv,'airflow_4800':ar1, 'airflow_4802': ar2}
+            for si, pn, sn, sv, cs, ii, ar, ppi, st, prp, arp, esn, efh, ec, eo, cv, cov, cg, hv,ar1,ar2 in zip(
+                dict_exp['stream_id'],
+                dict_exp['part_number'],
+                dict_exp['serial_number'],
+                dict_exp['shop_visit'],
+                dict_exp['create_station'],
+                dict_exp['inspection_index'],
+                dict_exp['airfoil_region'],
+                dict_exp['ppi_region'],
+                dict_exp['spallation_type'],
+                dict_exp['ppi_region_percent'],
+                dict_exp['airfoil_region_percent'],
+                dict_exp['ESN'],
+                dict_exp['engine_flight_hours'],
+                dict_exp['engine_cycles'],
+                dict_exp['engine_operator'],
+                dict_exp['casting_vendor'],
+                dict_exp['coating_vendor'],
+                dict_exp['coating_gain'],
+                dict_exp['hole_drill_vendor'],
+                dict_exp['airflow_4800'],
+                dict_exp['airflow_4802']
+            )
+        ]
+        expected_df=spark.createDataFrame(rows_inp_exp,schema=schema_exp)
+        return expected_df
+
+    def ppi_spall_df(self):
+        sp_df = spark.sql(f"""
+            select 
+                sp.part_number,
+                sp.serial_number,
+                sp.shop_visit,
+                sp.create_station,
+                sp.inspection_index,
+                sp.ppi_region,
+                ppi.airfoil_region,
+                sp.full_spallation,
+                sp.full_spallation_percent,
+                sp.partial_spallation,
+                sp.partial_spallation_percent,
+                sp.erosion,
+                sp.erosion_percent,
+                sp.crack,
+                sp.burnthrough,
+                sp.burnthrough_percent,
+                sp.other,
+                sp.other_percent,
+                eng.ESN,
+                eng.engine_flight_hours,
+                eng.engine_cycles,
+                eng.engine_operator,
+                cast.casting_vendor,
+                ct.coating_vendor,
+                ct.coating_gain,
+                ct.coating_date,
+                hol.hole_drill_vendor,
+                ar.`4800` as airflow_4800,
+                ar.`4802` as airflow_4802,
+                current_timestamp() as load_timestamp,
+                sp.stream_id
+            from spallation as sp
+            left join casting as cast on sp.serial_number = cast.serial_number
+            left join engine as eng on eng.serial_number = cast.serial_number
+            left join coat as ct on ct.serial_number = eng.serial_number
+            left join hole as hol on hol.serial_number = ct.serial_number
+            left join airflow_group as ar on ct.serial_number = ar.serial_number
+            left join ppi_region as ppi
+            on sp.ppi_region = ppi.PPI_region
+            and sp.part_number = ppi.part_number
+            where sp.processed = False
+            and ppi.inspection_type = 'LPPI_Spall'
+        """)
+        # print('distinct')
+        # sp_df = sp_df.drop('airflow_4800','airflow_4802','engine_flight_hours','engine_cycles')
+        # sp_df=sp_df.distinct()
+        # display(sp_df)       
+        return sp_df
+
+    def airfoil_spal_df(self):
+        ar_df = spark.sql(f"""
+            with weighted_percentages as (
+                select 
+                    sp.stream_id,
+                    sp.part_number,
+                    sp.ppi_region,
+                    ppi.airfoil_region,
+                    sp.serial_number,
+                    sp.shop_visit,
+                    sp.create_station,
+                    sp.inspection_index,
+                    round(sp.full_spallation_percent * ppi.ppi_airfoil_ratio, 3) as weighted_full_spallation_percent,
+                    round(sp.partial_spallation_percent * ppi.ppi_airfoil_ratio, 3) as weighted_partial_spallation_percent,
+                    round(sp.erosion_percent * ppi.ppi_airfoil_ratio, 3) as weighted_erosion_percent,
+                    round(sp.burnthrough_percent * ppi.ppi_airfoil_ratio, 3) as weighted_burnthrough_percent,
+                    round(sp.other_percent * ppi.ppi_airfoil_ratio, 3) as weighted_other_percent
+                from spallation as sp
+                left join ppi_region as ppi
+                on sp.ppi_region = ppi.PPI_region
+                and sp.part_number = ppi.part_number
+                where sp.processed = False
+                and ppi.inspection_type = 'LPPI_Spall'
+            )
+
+            select 
+                stream_id,
+          shop_visit,
+                create_station,
+                inspection_index,
+                part_number,
+                serial_number,
+                airfoil_region,
+                round(sum(weighted_full_spallation_percent), 3) as full_spallation_percent,
+                round(sum(weighted_partial_spallation_percent), 3) as partial_spallation_percent,
+                round(sum(weighted_erosion_percent), 3) as erosion_percent,--
+                round(sum(weighted_burnthrough_percent), 3) as burnthrough_percent,
+                round(sum(weighted_other_percent), 3) as other_percent
+            from weighted_percentages
+            group by 
+                stream_id,
+                shop_visit,
+                create_station,
+                inspection_index,
+                part_number,
+                serial_number,
+                airfoil_region
+        """)
+        print('ar_df')
+        display(ar_df)
+        return ar_df
+
+    def spal_pivot_combined_df(self):
+
+        df_ppi = self.ppi_spall_df()
+        df_airfoil = self.airfoil_spal_df()
+        print('df_ppi')
+        display(df_ppi)
+        print('df_airfoil')
+        display(df_airfoil)
+        df_ppi.createOrReplaceTempView("ppi_spal")
+        df_airfoil.createOrReplaceTempView("airfoil_spal")
+
+        spall_types = ["full_spallation", "partial_spallation", "erosion", "burnthrough", "other"]
+
+        query_airfoil_percent = ""
+
+        for i, spall_type in enumerate(spall_types):
+            if i > 0:
+                query_airfoil_percent += "union"
+            query_airfoil_percent += f"""
+                    select stream_id,
+                        part_number,
+                        serial_number,
+                        shop_visit,
+                        create_station,
+                        inspection_index,
+                        airfoil_region,
+                        '{spall_type.replace("_", " ").title()}' as spallation_type,
+                        {spall_type}_percent as airfoil_region_percent
+                    from airfoil_spal
+                """
+
+        query_airfoil_percent += "order by serial_number, stream_id"
+
+        df_airfoil_percent = spark.sql(query_airfoil_percent)
+
+        print("airfoil df count: ", df_airfoil_percent.count())
+
+        #this for loop and query is for extracting ppi percent
+
+        query_ppi_percent = ""
+
+        for i, spall_type in enumerate(spall_types):
+            if i > 0:
+                query_ppi_percent += "union"
+            query_ppi_percent += f"""
+                select serial_number,
+                    stream_id,
+                    airfoil_region,
+                    ppi_region,
+                    '{spall_type.replace("_", " ").title()}' as spallation_type,
+                    {spall_type}_percent as ppi_region_percent
+                from ppi_spal
+            """
+
+        query_ppi_percent += "order by serial_number, stream_id, ppi_region"
+
+        df_ppi_percent = spark.sql(query_ppi_percent)
+
+        df_airfoil_percent.display()
+        print("df_airfoil_percent", df_airfoil_percent.select("serial_number").distinct().count())
+        df_ppi_percent.display()
+        print("df_ppi_percent", df_ppi_percent.select("serial_number").distinct().count())
+
+        df_joined = df_airfoil_percent.join(
+            df_ppi_percent,
+            ["serial_number", "stream_id", "airfoil_region", "spallation_type"]
+        )
+
+        if df_joined.count() > 0:
+
+            df_id = df_joined.withColumn("system_def_id", F.monotonically_increasing_id())
+
+            df_id.createOrReplaceTempView("spallation_combined")
+            df_id.display()
+
+            df_combined = spark.sql("""
+                select
+                sp.system_def_id,
+                sp.stream_id,
+                sp.part_number,
+                sp.serial_number,
+                sp.shop_visit,
+                sp.create_station,
+                sp.inspection_index,
+                sp.airfoil_region,
+                sp.ppi_region,
+                sp.spallation_type,
+                sp.ppi_region_percent,
+                sp.airfoil_region_percent,
+                eng.ESN,
+                eng.engine_flight_hours,
+                eng.engine_cycles,
+                eng.engine_operator,
+                cast.casting_vendor,
+                ct.coating_vendor,
+                ct.coating_gain,
+                ct.coating_date,
+                hol.hole_drill_vendor,
+                ar.`4800` as airflow_4800,
+                ar.`4802` as airflow_4802,
+                current_timestamp() as load_timestamp
+                from spallation_combined as sp
+                left join casting as cast on sp.serial_number = cast.serial_number
+                left join engine as eng on eng.serial_number = cast.serial_number
+                left join coat as ct on ct.serial_number = eng.serial_number
+                left join hole as hol on hol.serial_number = ct.serial_number
+                left join airflow_group as ar on ct.serial_number = ar.serial_number
+            """)
+
+            print("final scatterplot df:")
+            df_combined.display()
+
+            df_dict = {
+                "df": df_combined,
+                "table_name": "spallation_publish", 
+                "data_layer": "published",
+                "merge_schema": True
+            }
+
+            return df_dict
+        
+    def test_spallation_curatedtopublish(self):
+        # expected_df = 
+        self.mock_data_spallation()
+        #display(inp_data)
+        temp_df = self.spal_pivot_combined_df()
+        output_df=temp_df['df']
+        output_df.printSchema()
+        # self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+
+++++++++++++++++++++++++
 schema = StructType([
     StructField("system_def_id", StringType(), nullable=True),
     StructField("stream_id", StringType(), nullable=True),
