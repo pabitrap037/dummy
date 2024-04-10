@@ -1,3 +1,50 @@
+
+
+# Extended data in the format of a dictionary
+dict_spall = {
+    'part_number': ['30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501', '30G5501'],
+    'serial_number': ['aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122', 'aabbcc001122'],
+    'shop_visit': [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+    'create_station': ['Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial', 'Initial'],
+    'inspection_index': [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    'ppi_region': ['x1', 'x2', 'x3', 'y1', 'y2', 'y3', 'y4', 'x2', 'x1', 'x2', 'x3', 'y1', 'y2', 'y3', 'y4', 'x2', 'x1', 'x2', 'x3', 'y1', 'y2', 'y3', 'y4', 'x2', 'x1', 'x2', 'x3', 'y1', 'y2', 'y3', 'y4', 'x2', 'x1', 'x2', 'x3', 'y1', 'y2'],
+    'full_spallation': [True, False, True, True, True, False, True, True, True, False, True, True, False, True, True, True, True, False, True, True, True, False, True, True, True, True, False, True, True, True, False, True, True, True, True, False],
+    'full_spallation_percent': [0.133, 0.0, 0.041, 0.007, 0.013, 0.0, 0.101, 0.2, 0.133, 0.0, 0.041, 0.007, 0.013, 0.0, 0.101, 0.2, 0.133, 0.0, 0.041, 0.007, 0.013, 0.0, 0.101, 0.2, 0.133, 0.0, 0.041, 0.007, 0.013, 0.0, 0.101, 0.2, 0.133, 0.0, 0.041, 0.007, 0.013, 0.0],
+    'partial_spallation': [True, True, True, False, True, True, True, False, True, True, True, False, True, True, True, False, True, True, True, False, True, True, True, False, True, True, True, False, True, True, True, False, True, True, True, False],
+    'partial_spallation_percent': [0.007, 0.5, 0.358, 0.0, 0.02, 0.08, 0.091, 0.0, 0.007, 0.5, 0.358, 0.0, 0.02, 0.08, 0.091, 0.0, 0.007, 0.5, 0.358, 0.0, 0.02, 0.08, 0.091, 0.0, 0.007, 0.5, 0.358, 0.0, 0.02, 0.08, 0.091, 0.0, 0.007, 0.5, 0.358, 0.0, 0.02, 0.08],
+    'erosion': [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False],
+    'erosion_percent': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'crack': [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False],
+    'burnthrough': [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False],
+    'burnthrough_percent': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'other': [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False],
+    'other_percent': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'stream_id': ['xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01'],
+    'processed': [False, False, False, False, False, False, False, True, False, False, False, False, False, False, False, True, False, False, False, False, False, False, False, True, False, False, False, False, False, False, False, True, False, False, False, False, False]
+}
+
+# List of dictionaries
+rows_inp_spall = [
+    {'part_number': pn, 'serial_number': sn, 'shop_visit': sv, 'create_station': cs, 'inspection_index': ii, 'ppi_region': ppi,
+     'full_spallation': fs, 'full_spallation_percent': fp, 'partial_spallation': ps, 'partial_spallation_percent': pp,
+     'erosion': er, 'erosion_percent': ep, 'crack': ck, 'burnthrough': bn, 'burnthrough_percent': bp, 'other': ot, 'other_percent': op,
+     'stream_id': si, 'processed': pr}
+    for pn, sn, sv, cs, ii, ppi, fs, fp, ps, pp, er, ep, ck, bn, bp, ot, op, si, pr in zip(
+        dict_spall['part_number'], dict_spall['serial_number'], dict_spall['shop_visit'], dict_spall['create_station'],
+        dict_spall['inspection_index'], dict_spall['ppi_region'], dict_spall['full_spallation'], dict_spall['full_spallation_percent'],
+        dict_spall['partial_spallation'], dict_spall['partial_spallation_percent'], dict_spall['erosion'], dict_spall['erosion_percent'],
+        dict_spall['crack'], dict_spall['burnthrough'], dict_spall['burnthrough_percent'], dict_spall['other'], dict_spall['other_percent'],
+        dict_spall['stream_id'], dict_spall['processed']
+    )
+]
+
+# Displaying the list of dictionaries
+for row in rows_inp_spall:
+    print(row)
+
+
+
+____________________________________________________________________________
 system_def_id	stream_id	part_number	serial_number	shop_visit	create_station	inspection_index	airfoil_region	ppi_region	spallation_type	ppi_region_percent	airfoil_region_percent	ESN	engine_flight_hours	engine_cycles	engine_operator	casting_vendor	coating_vendor	coating_gain	coating_date	hole_drill_vendor	airflow_4800	airflow_4802	load_timestamp
 0	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y1	Full Spallation	0.007	0.046	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
 1	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y3	Full Spallation	0	0.046	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
