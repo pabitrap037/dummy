@@ -1,3 +1,43 @@
+system_def_id	stream_id	part_number	serial_number	shop_visit	create_station	inspection_index	airfoil_region	ppi_region	spallation_type	ppi_region_percent	airfoil_region_percent	ESN	engine_flight_hours	engine_cycles	engine_operator	casting_vendor	coating_vendor	coating_gain	coating_date	hole_drill_vendor	airflow_4800	airflow_4802	load_timestamp
+0	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y1	Full Spallation	0.007	0.046	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+1	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y3	Full Spallation	0	0.046	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+2	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y4	Full Spallation	0.101	0.046	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+3	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x1	Partial Spallation	0.007	0.337	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+4	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y4	Partial Spallation	0.091	0.052	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+5	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y2	Partial Spallation	0.02	0.052	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+6	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x2	Partial Spallation	0.5	0.337	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+7	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y1	Partial Spallation	0	0.052	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+8	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y3	Partial Spallation	0.08	0.052	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+9	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x3	Partial Spallation	0.358	0.337	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+10	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x1	Erosion	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+11	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y1	Erosion	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+12	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y3	Erosion	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+13	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y2	Erosion	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+14	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x2	Erosion	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+15	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y4	Erosion	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+16	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x3	Erosion	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+17	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y3	Burnthrough	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+18	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x2	Burnthrough	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+19	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y1	Burnthrough	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+20	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x1	Burnthrough	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+21	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x3	Burnthrough	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+22	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y4	Burnthrough	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+23	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y2	Burnthrough	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+24	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x1	Full Spallation	0.133	0.045	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+25	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x2	Full Spallation	0	0.045	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+26	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x3	Full Spallation	0.041	0.045	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+27	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y2	Full Spallation	0.013	0.046	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+28	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x2	Other	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+29	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x3	Other	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+30	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Backing Radius	x1	Other	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+31	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y3	Other	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+32	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y1	Other	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+33	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y4	Other	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+34	xxxx-01	30G5501	aabbcc001122	10	Initial	3	Flat Side	y2	Other	0	0	ESN11	500	50	Operator1	vendor1	cvendor2	4.3	11/11/2023	hvendor1	78.5	-98.5	2024-04-10T09:31:34.845Z
+
+
+
+
 import warnings
 import unittest
 import re
