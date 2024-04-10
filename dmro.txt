@@ -1,4 +1,27 @@
 
+ |-- stream_id: string (nullable = true)
+ |-- part_number: string (nullable = true)
+ |-- serial_number: string (nullable = true)
+ |-- shop_visit: integer (nullable = true)
+ |-- create_station: string (nullable = true)
+ |-- inspection_index: integer (nullable = true)
+ |-- airfoil_region: string (nullable = true)
+ |-- ppi_region: string (nullable = true)
+ |-- spallation_type: string (nullable = false)
+ |-- ppi_region_percent: double (nullable = true)
+ |-- airfoil_region_percent: double (nullable = true)
+ |-- ESN: string (nullable = true)
+ |-- engine_flight_hours: integer (nullable = true)
+ |-- engine_cycles: integer (nullable = true)
+ |-- engine_operator: string (nullable = true)
+ |-- casting_vendor: string (nullable = true)
+ |-- coating_vendor: string (nullable = true)
+ |-- coating_gain: double (nullable = true)
+ |-- coating_date: date (nullable = true)
+ |-- hole_drill_vendor: string (nullable = true)
+ |-- airflow_4800: double (nullable = true)
+ |-- airflow_4802: double (nullable = true)
+
 
 # Extended data in the format of a dictionary
 dict_spall = {
