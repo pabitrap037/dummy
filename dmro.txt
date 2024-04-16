@@ -1,4 +1,56 @@
 
+dict_exp = [{
+    'stream_id' : 'xxxx-01',
+    'label' : 'xxxx-01',
+    'regions' : [
+        {
+            "region_name": "x1",
+            "damages": [
+                {"damage_type": "full_spallation", "damage_percentage": 0.133},
+                {"damage_type": "partial_spallation", "damage_percentage": 0.007},
+                {"damage_type": "total_spallation", "damage_percentage": 0.14},
+                {"damage_type": "erosion", "damage_percentage": 0},
+                {"damage_type": "burnthrough", "damage_percentage": 0},
+                {"damage_type": "other", "damage_percentage": 0}
+            ]
+        },
+        {
+            "region_name": "x2",
+            "damages": [
+                {"damage_type": "full_spallation", "damage_percentage": 0},
+                {"damage_type": "partial_spallation", "damage_percentage": 0.5},
+                {"damage_type": "total_spallation", "damage_percentage": 0.5},
+                {"damage_type": "erosion", "damage_percentage": 0},
+                {"damage_type": "burnthrough", "damage_percentage": 0},
+                {"damage_type": "other", "damage_percentage": 0}
+            ]
+        },
+        {
+            "region_name": "x3",
+            "damages": [
+                {"damage_type": "full_spallation", "damage_percentage": 0.041},
+                {"damage_type": "partial_spallation", "damage_percentage": 0.358},
+                {"damage_type": "total_spallation", "damage_percentage": 0.399},
+                {"damage_type": "erosion", "damage_percentage": 0},
+                {"damage_type": "burnthrough", "damage_percentage": 0},
+                {"damage_type": "other", "damage_percentage": 0}
+            ]
+        },
+        {
+            "region_name": "y1",
+            "damages": [
+                {"damage_type": "full_spallation", "damage_percentage": 0.007},
+                {"damage_type": "partial_spallation", "damage_percentage": 0},
+                {"damage_type": "total_spallation", "damage_percentage": 0.007},
+                {"damage_type": "erosion", "damage_percentage": 0},
+                {"damage_type": "burnthrough", "damage_percentage": 0},
+                {"damage_type": "other", "damage_percentage": 0}
+            ]
+        }
+    ]
+}]
+
+----------------------------------------------------
 import warnings
 import unittest
 import re
