@@ -1,3 +1,162 @@
+
+import warnings
+import unittest
+import re
+from pyspark.sql import functions as F
+from pyspark.sql.functions import col,udf
+from pyspark.sql.types import StructType, StructField, StringType,BooleanType,DoubleType,IntegerType,DateType,ArrayType
+from pyspark.sql.window import Window
+from pyspark.sql.functions import to_timestamp
+from datetime import datetime
+warnings.filterwarnings("ignore")
+
+class UnitTestFunctions(unittest.TestCase):
+    test=True
+    version=''
+
+    def mock_data_spallation_3d(self):
+        #spallation_3d table
+        schema_spall_3d =StructType([
+            StructField('ppi_region', StringType(), True),
+            StructField('full_spallation_percent', DoubleType(), True),
+            StructField('partial_spallation_percent', DoubleType(), True),
+            StructField('erosion_percent', DoubleType(), True),
+            StructField('burnthrough_percent', DoubleType(), True),
+            StructField('other_percent', DoubleType(), True),
+            StructField('stream_id', StringType(), True)
+        ])
+        dict_spall_3d = {
+            'ppi_region': ['x1', 'x2', 'x3', 'y1'],
+            'full_spallation_percent': [0.133, 0.0, 0.041, 0.007],
+            'partial_spallation_percent': [0.007, 0.5, 0.358, 0.0],
+            'erosion_percent': [0.0, 0.0, 0.0, 0.0],
+            'burnthrough_percent': [0.0, 0.0, 0.0, 0.0],
+            'other_percent': [0.0, 0.0, 0.0, 0.0],
+            'stream_id': ['xxxx-01', 'xxxx-01', 'xxxx-01', 'xxxx-01']
+        }
+        rows_inp_spall_3d = [
+            {'ppi_region':ppi,'full_spallation_percent':fp,'partial_spallation_percent':pp,'erosion_percent':ep,'burnthrough_percent':bp,'other_percent':op,'stream_id':si}
+            for ppi,fp,pp,ep,bp,op,si in zip(
+                dict_spall_3d['ppi_region'],
+                dict_spall_3d['full_spallation_percent'],
+                dict_spall_3d['partial_spallation_percent'],
+                dict_spall_3d['erosion_percent'],
+                dict_spall_3d['burnthrough_percent'],
+                dict_spall_3d['other_percent'],
+                dict_spall_3d['stream_id']
+            )
+        ]
+        spall_df_3d=spark.createDataFrame(rows_inp_spall_3d,schema=schema_spall_3d)
+        spall_df_3d.createOrReplaceTempView('spallation')
+
+        #expected table
+        schema_exp = StructType([
+            StructField("stream_id", StringType(), True),
+            StructField("label", StringType(), True),
+            StructField("regions", ArrayType(
+                StructType([
+                    StructField("region_name", StringType(), True),
+                    StructField("damages", ArrayType(
+                        StructType([
+                            StructField("damage_type", StringType(), True),
+                            StructField("damage_percentage", DoubleType(), True)
+                        ])
+                    ), True)
+                ])
+            ), True)
+        ])
+        dict_exp = [{
+            'stream_id' : 'xxxx-01',
+            'label' : 'xxxx-01',
+            'regions' : '[{"region_name": "x1", "damages": [{"damage_type": "full_spallation", "damage_percentage": 0.133}, {"damage_type": "partial_spallation", "damage_percentage": 0.007}, {"damage_type": "total_spallation", "damage_percentage": 0.14}, {"damage_type": "erosion", "damage_percentage": 0}, {"damage_type": "burnthrough", "damage_percentage": 0}, {"damage_type": "other", "damage_percentage": 0}]}, {"region_name": "x2", "damages": [{"damage_type": "full_spallation", "damage_percentage": 0}, {"damage_type": "partial_spallation", "damage_percentage": 0.5}, {"damage_type": "total_spallation", "damage_percentage": 0.5}, {"damage_type": "erosion", "damage_percentage": 0}, {"damage_type": "burnthrough", "damage_percentage": 0}, {"damage_type": "other", "damage_percentage": 0}]}, {"region_name": "x3", "damages": [{"damage_type": "full_spallation", "damage_percentage": 0.041}, {"damage_type": "partial_spallation", "damage_percentage": 0.358}, {"damage_type": "total_spallation", "damage_percentage": 0.399}, {"damage_type": "erosion", "damage_percentage": 0}, {"damage_type": "burnthrough", "damage_percentage": 0}, {"damage_type": "other", "damage_percentage": 0}]}, {"region_name": "y1", "damages": [{"damage_type": "full_spallation", "damage_percentage": 0.007}, {"damage_type": "partial_spallation", "damage_percentage": 0}, {"damage_type": "total_spallation", "damage_percentage": 0.007}, {"damage_type": "erosion", "damage_percentage": 0}, {"damage_type": "burnthrough", "damage_percentage": 0}, {"damage_type": "other", "damage_percentage": 0}]}]'
+        }]
+        
+        expected_df = spark.createDataFrame(dict_exp,schema=schema_exp)
+        return expected_df
+
+        
+
+
+    def published_3d_df(version) -> dict:
+        df = spark.sql("""
+            select ppi_region,
+                full_spallation_percent,
+                partial_spallation_percent,
+                erosion_percent,
+                burnthrough_percent,
+                other_percent,
+                stream_id,
+                stream_id as label
+            from spallation
+        """)
+
+        new_data = []
+
+        result_list = []
+        for row in df.select("stream_id", "label").distinct().collect():
+            stream_id = row.stream_id
+            label = row.label
+            filtered_df = df.filter((col("stream_id") == stream_id) & (col("label") == label))
+            region_data = filtered_df.select("ppi_region", "full_spallation_percent", "partial_spallation_percent",
+                                            "erosion_percent", "burnthrough_percent", "other_percent").collect()
+            
+            regions_list = []
+            for r in region_data:
+                damages_list = []
+                damages_list.append({"damage_type": "full_spallation", "damage_percentage": r.full_spallation_percent})
+                damages_list.append({"damage_type": "partial_spallation", "damage_percentage": r.partial_spallation_percent})
+                damages_list.append({"damage_type": "total_spallation", "damage_percentage": round(r.partial_spallation_percent + r.full_spallation_percent, 3)})
+                damages_list.append({"damage_type": "erosion", "damage_percentage": r.erosion_percent})
+                damages_list.append({"damage_type": "burnthrough", "damage_percentage": r.burnthrough_percent})
+                damages_list.append({"damage_type": "other", "damage_percentage": r.other_percent})
+                regions_list.append({"region_name": r.ppi_region, "damages": damages_list})
+            
+            result_list.append({"stream_id": stream_id, "label": label, "regions": regions_list})
+
+        schema = StructType([
+            StructField("stream_id", StringType(), True),
+            StructField("label", StringType(), True),
+            StructField("regions", ArrayType(
+                StructType([
+                    StructField("region_name", StringType(), True),
+                    StructField("damages", ArrayType(
+                        StructType([
+                            StructField("damage_type", StringType(), True),
+                            StructField("damage_percentage", DoubleType(), True)
+                        ])
+                    ), True)
+                ])
+            ), True)
+        ])
+
+        result_df = spark.createDataFrame(result_list, schema)
+
+        df_dict = {
+            "df": result_df,
+            "table_name": "spallation_3d_publish", 
+            "data_layer": "published",
+            "merge_schema": False
+        }
+
+        return df_dict
+
+
+    def test_spallation_curatedtopublish(self):
+        expected_df = self.mock_data_spallation_3d()
+        print('exp')
+        display(expected_df)
+        temp_df = self.published_3d_df()
+        output_df = temp_df['df']
+        print('output')
+        # output_df.printSchema()
+        display(output_df)
+        # self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
+
+if __name__ == '__main__':
+    unittest.main(argv=[''], exit=False, verbosity=2)
+
+
+--------------------------------------------------------------
 spallation_type = ['Full Spallation', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Erosion', 'Erosion', 'Erosion', 'Erosion', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Other', 'Other', 'Other', 'Other', 'Other', 'Full Spallation', 'Full Spallation', 'Full Spallation', 'Partial Spallation', 'Partial Spallation', 'Partial Spallation', 'Erosion', 'Erosion', 'Erosion', 'Burnthrough', 'Burnthrough', 'Burnthrough', 'Other', 'Other']
 
 ppi_region_percent = [0.133, 0, 0.041, 0.007, 0.007, 0.5, 0.358, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.013, 0, 0.101, 0.02, 0.08, 0.091, 0, 0, 0, 0, 0, 0, 0, 0, 0]
