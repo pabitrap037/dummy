@@ -1,4 +1,23 @@
 Basically, whenever autoloader finds new data in blob, we need to compare all the new data with the existing data based on combination of values in the serial_number / create_station / shop_visit / inspection_index fields. This comparison would be with the dmro_raw.tag table. If there are any duplicate combinations, then we would delete all records with the given combinations from all tables. I think the easiest way to do the delete would be to use the stream_id from the tag table in a “delete from <table> where stream_id = <stream_id>” query.
+
+Here’s the list of tables to delete from:
+•	Dmro_raw: 
+o	Defect
+o	Detection
+o	Tag
+o	spallation
+•	Dmro_curated: 
+o	Defect
+o	Defect_image
+o	Inspection
+o	spallation
+•	dmro_published: 
+o	defect_image_publish
+o	defect_publish
+o	inspection_publish
+o	spallation_3d_publish
+o	spallation_publish
+
 ************************************************************
 import warnings
 import unittest
