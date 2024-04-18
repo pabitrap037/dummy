@@ -1,3 +1,44 @@
+def reprocessing_packages(spark, path_to_blob):
+    # Read new data from blob without specifying schema
+    new_data_df = spark.read.format("csv") \
+        .option("header", "true") \
+        .load(path_to_blob)
+
+    # Select only the required columns
+    required_columns = ["serial_number", "create_station", "shop_visit", "inspection_index"]
+    new_data_df = new_data_df.select(*required_columns)
+
+    # Read existing data from tag table
+    existing_data_df = spark.read.format("delta") \
+        .table("dmro_raw.tag")
+
+    # Join new data with existing data on the combination of fields
+    joined_df = new_data_df.join(existing_data_df, 
+                                 (new_data_df.serial_number == existing_data_df.serial_number) & 
+                                 (new_data_df.create_station == existing_data_df.create_station) &
+                                 (new_data_df.shop_visit == existing_data_df.shop_visit) &
+                                 (new_data_df.inspection_index == existing_data_df.inspection_index),
+                                 "inner")
+
+    # Get distinct stream_ids from the joined dataframe
+    stream_ids_to_delete = joined_df.select("stream_id").distinct()
+
+    # Define list of tables to delete from
+    tables_to_delete = [
+        "dmro_raw.Defect", "dmro_raw.Detection", "dmro_raw.Tag", "dmro_raw.Spallation",
+        "dmro_curated.Defect", "dmro_curated.Defect_image", "dmro_curated.Inspection", "dmro_curated.Spallation",
+        "dmro_published.defect_image_publish", "dmro_published.defect_publish", "dmro_published.inspection_publish",
+        "dmro_published.spallation_3d_publish", "dmro_published.spallation_publish"
+    ]
+
+    # Delete records from each table using stream_ids
+    for table_name in tables_to_delete:
+        spark.sql(f"DELETE FROM {table_name} WHERE stream_id IN (SELECT DISTINCT stream_id FROM joined_df)")
+
+# Example usage:
+# reprocessing_packages(spark, "path_to_blob")
+
+*******************************************************************************
 Basically, whenever autoloader finds new data in blob, we need to compare all the new data with the existing data based on combination of values in the serial_number / create_station / shop_visit / inspection_index fields. This comparison would be with the dmro_raw.tag table. If there are any duplicate combinations, then we would delete all records with the given combinations from all tables. I think the easiest way to do the delete would be to use the stream_id from the tag table in a “delete from <table> where stream_id = <stream_id>” query.
 
 Here’s the list of tables to delete from:
