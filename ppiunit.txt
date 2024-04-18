@@ -1,3 +1,5 @@
+Basically, whenever autoloader finds new data in blob, we need to compare all the new data with the existing data based on combination of values in the serial_number / create_station / shop_visit / inspection_index fields. This comparison would be with the dmro_raw.tag table. If there are any duplicate combinations, then we would delete all records with the given combinations from all tables. I think the easiest way to do the delete would be to use the stream_id from the tag table in a “delete from <table> where stream_id = <stream_id>” query.
+************************************************************
 import warnings
 import unittest
 from pyspark.sql import SparkSession
