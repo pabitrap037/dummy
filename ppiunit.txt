@@ -1,3 +1,131 @@
+Basically, we want to do the same thing with engine usage data that we did with casting vendor: compare new serial numbers against existing serial numbers in the engine usage table and ingest data from Hawkeye for the new serial numbers that don’t currently have any data in the engine usage table.
+
+Here’s what the functions look like for casting vendor (further instructions are interspersed with code, just FYI):
+
+def casting_vendor_df(serial_numbers: list) -> DataFrame:
+
+    serial_number_string = ",".join(serial_numbers)
+
+    jdbcHostname = "ppppppppppppppp"
+    jdbcDatabase = "ppppppppppppppp"
+    jdbcPort = 2222
+    username = "ppppppppppppppp"
+    password = "ppppppppppppppp"
+    jdbcUrl = "ppppppppppppppp"
+    driver = "ppppppppppppppp"
+
+    query = f"""
+        <query to run>
+    """
+
+    try:
+        df = spark.read.format("jdbc") \
+            .option("url", jdbcUrl) \
+            .option("query", query) \
+            .option("user", username) \
+            .option("password", password) \
+            .option("driver", driver) \
+            .option("authentication", "ActiveDirectoryPassword") \
+            .load()
+    except Exception as e:
+        print(f"failed to connect to the database: {e}")
+        raise Exception("Stopping pipeline run due to failure connecting to Hawkeye database.")
+    
+    return df
+
+
+def get_casting_vendor_data(df: DataFrame) -> DataFrame:
+    """
+    Retrieve casting vendor data from Hawkeye database for dataframe of serial numbers.
+    """
+    # create dataframe of serial numbers currently in tag table
+    df.display()
+    print(f"autoloaded sn count: {df.count()}")
+    df_existing_ser_num = spark.read.table("dmro_raw.tag").select("serial_number")
+    print(f"existing sn count: {df_existing_ser_num.count()}")
+
+    # create dataframe of only serial numbers that don't already exist in tag table
+    df_new_ser_num = df.join(df_existing_ser_num, df_existing_ser_num.serial_number == df.serial_number, "left_anti")
+    df_new_ser_num.display()
+
+
+    # put new serial numbers into stringified list and retrieve casting vendor for them
+    sn_list = []
+
+    for row in df_new_ser_num.collect():
+        sn_list.append(row.serial_number)
+
+    if len(sn_list) > 0:
+        df_new_casting_vendor = casting_vendor_df(sn_list)
+        df_new_casting_vendor.display()
+
+        # check to see if any new serial numbers returned no casting vendor data; if so, save to exception table
+        df_missing_ser_num = df_new_ser_num.subtract(df_new_casting_vendor.select("serial_number"))
+
+        if df_missing_ser_num.count() > 0:
+            df_missing_ser_num = df_missing_ser_num.withColumn("reason", lit("no casting vendor data found"))
+
+            save_table(
+                df=df_missing_ser_num,
+                table_name="tag_exception",
+                data_layer="exception",
+                version=version,
+                merge_schema=True,
+                header=True
+            )
+
+        return df_new_casting_vendor
+
+And here is where get_casting_vendor gets called in the workflow:
+
+    def tag_blobtoraw(df: DataFrame, batchId: int):
+        df_timestamp = df.withColumn("load_timestamp", F.current_timestamp()).withColumn("processed",lit(False))
+
+        # check for casting vendor data using dataframe of serial numbers from autoloaded data
+        df_new_casting_vendor = get_casting_vendor_data(df_timestamp.select("serial_number"))
+        # create dataframe of serial numbers from autoloaded data
+
+        if df_new_casting_vendor and df_new_casting_vendor.count() > 0:
+            save_table(
+                df=df_new_casting_vendor,
+                table_name="casting_vendor",
+                data_layer="raw",
+                version=version,
+                header=True
+            )
+
+        else:
+            print("New data contains no new serial numbers.")
+
+        #Condition here to check if there if inspection_index and shop_visit is equal to 0 then save it to exception_file_path_tags from where we can send email
+        exception_df = df_timestamp.filter((col('inspection_index')==0)|(col('shop_visit')==0))
+
+        if exception_df.count()>0:
+            reason_df = exception_df.withColumn("reason", lit("inspection index or shop visit is 0")) 
+            reason_df = reorder_columns(reason_df) \
+            #     .drop('_rescued_data')
+            
+            save_table(
+                df=reason_df,
+                table_name="tag_exception",
+                data_layer="exception",
+                version=version,
+                header=True
+            )
+
+        save_table(
+            df=df_timestamp,
+            table_name="tag",
+            data_layer="raw",
+            version=version,
+            merge_schema=True
+        )
+        print("saved tag raw")
+        return True
+
+It would be great if you could make the equivalent for engine usage. If you’re up for it, you could even make the function that sends the actual query abstract enough that we could run it for either casting vendor or engine usage data (since it’s the same credentials we’re using).
+===============================================================================
+
 def reprocessing_packages(spark, path_to_blob):
     # Read new data from blob without specifying schema
     new_data_df = spark.read.format("csv") \
