@@ -1,4 +1,14 @@
+from databricks.sdk import WorkspaceClient
+import base64
 
+scope_name="test"
+dbx_workspace = WorkspaceClient()
+dbx_workspace.secrets.create_scope(scope=scope_name)
+
+# dbutils.secrets.listScopes()
+dbx_workspace.secrets.put_secret(scope="dmro", key="keyvalue ", string_value="password0000")
+
+************************************
 Traceback (most recent call last):
   File "/root/.ipykernel/1436/command-3940540748351442-1233161949", line 197, in test_spallation_curatedtopublish
     self.assertTrue(output_df.toPandas().equals(expected_df.toPandas()))
