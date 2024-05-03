@@ -1,3 +1,23 @@
+
+# Validations for engine usage data
+if df_new_engine_usage:
+    # Row for SN must exist for engine usage data
+    if df_new_engine_usage.filter(df_new_engine_usage.serial_number.isNull()).count() > 0:
+        send_email("Row for serial number missing in engine usage data")
+    
+    # Engine serial number must have data
+    if df_new_engine_usage.filter(df_new_engine_usage.serial_number == "").count() > 0:
+        send_email("Empty serial number in engine usage data")
+
+    # Hours or cycles cannot be zero
+    if df_new_engine_usage.filter((df_new_engine_usage.engine_flight_hours == 0) | (df_new_engine_usage.cycles == 0)).count() > 0:
+        send_email("Zero hours or cycles in engine usage data")
+
+    # Hours cannot be more than Cycles
+    if df_new_engine_usage.filter(df_new_engine_usage.engine_flight_hours > df_new_engine_usage.cycles).count() > 0:
+        send_email("Hours greater than cycles in engine usage data")
+
+:::::::::::::::::::::::::::::::::::::
 Here’s a bit of work you can start on for us. We have some validations to run for the engine usage data after we load it. Here’s the data’s schema:
 
 serial_number: string
