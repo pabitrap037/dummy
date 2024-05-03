@@ -1,3 +1,100 @@
+Here’s a bit of work you can start on for us. We have some validations to run for the engine usage data after we load it. Here’s the data’s schema:
+
+serial_number: string
+part_number: string
+esn: string
+batch_number: int
+removal_date: date
+engine_flight_hours: double
+cycles: int
+
+Here are the validations Janet wants to run:
+
+•	Row for SN must exist for engine usage data (part shouldn't fly without an engine)
+•	Engine serial number must have data (no nulls, blanks)
+•	Hours or cycles cannot be zero
+•	Hours cannot be more than Cycles
+•	Send emails for any of the above as these conditions as a part shouldn't fly without an engine or have bad or incomplete data
+
+Could you incorporate those validations into tag_blobtoraw? We’ll need to run them on df_new_engine_usage, which is highlighted in the code below. At the moment, df_filtered contains only data from the autoloader for which was found engine usage data, but we should also be filtering out records with null values in the serial number field. For data that fails any of the other validations, we’ll leave it in for now.
+
+    def tag_blobtoraw(df: DataFrame, batchId: int):
+
+        check_reprocessing(df)
+
+        for _col in df.columns:
+            if "." in _col:
+                df = df.withColumnRenamed(_col, _col.replace(".", "_"))
+        
+        df_timestamp = df.withColumn("load_timestamp", F.current_timestamp()).withColumn("processed",lit(False))
+
+        # create dataframe containing new serial numbers
+        df_new_ser_num = new_serial_numbers(df_timestamp.select("serial_number"))
+
+        if df_new_ser_num.count() > 0:
+
+            # get casting vendor data for new serial numbers
+            df_new_casting_vendor = get_casting_vendor_data(df_new_ser_num)
+
+            # create dataframe containing casting vendor data for new serial numbers and save to table
+            if df_new_casting_vendor and df_new_casting_vendor.count() > 0:
+                save_table(
+                    df=df_new_casting_vendor,
+                    table_name="casting_vendor",
+                    data_layer="raw",
+                    version=version,
+                    header=True
+                )
+
+            # create dataframe containing engine usage data for new serial numbers and filter out new data with
+            # no engine usage data
+            df_new_engine_usage, df_filtered = get_engine_usage_data(df_new_ser_num, df_timestamp)
+
+            # save engine usage data to table
+            if df_new_engine_usage and df_new_engine_usage.count() > 0:
+                save_table(
+                    df=df_new_engine_usage,
+                    table_name="engine_usage",
+                    data_layer="raw",
+                    version=version,
+                    header=True                    
+                )
+
+            # If there is no new data with missing engine usage data, df_filtered will be None. Otherwise, use
+            # df_filtered (which has filtered out data with missing engine usage data) as the dataset that will
+            # eventually be saved.
+            if df_filtered and df_filtered.count() > 0:
+                df_timestamp = df_filtered            
+
+        else:
+            print("New data contains no new serial numbers.")
+
+        #Condition here to check if there if inspection_index and shop_visit is equal to 0 then save it to exception_file_path_tags from where we can send email
+        exception_df = df_timestamp.filter((col('inspection_index')==0)|(col('shop_visit')==0))
+
+        if exception_df.count()>0:
+            reason_df = exception_df.withColumn("reason", lit("inspection index or shop visit is 0")) 
+            reason_df = reorder_columns(reason_df) \
+            #     .drop('_rescued_data')
+            
+            save_table(
+                df=reason_df,
+                table_name="tag_exception",
+                data_layer="exception",
+                version=version,
+                header=True
+            )
+
+        save_table(
+            df=df_timestamp,
+            table_name="tag",
+            data_layer="raw",
+            version=version,
+            merge_schema=True
+        )
+        print("saved tag raw")
+        return True 
+???????????????????????????????????????????????????????????????
 # Define the name of the secret scope
 scope_name = "test"
 
