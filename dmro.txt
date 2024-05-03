@@ -1,4 +1,27 @@
+def validate_engine_usage_data(df_new_engine_usage):
+    # Initialize an empty list to store validation results and corresponding rows
+    validation_results_with_rows = []
 
+    # Define validation function
+    def validate_row(row):
+        if row.serial_number is None:
+            validation_results_with_rows.append(("Row for serial number missing", row))
+        elif row.serial_number == "":
+            validation_results_with_rows.append(("Empty serial number", row))
+        if row.engine_flight_hours == 0 or row.cycles == 0:
+            validation_results_with_rows.append(("Zero hours or cycles", row))
+        elif row.engine_flight_hours > row.cycles:
+            validation_results_with_rows.append(("Hours greater than cycles", row))
+
+    # Apply validation function to each row
+    for row in df_new_engine_usage.collect():
+        validate_row(row)
+
+    # Return the list of validation results with corresponding rows
+    return validation_results_with_rows
+
+
+*************
 # Validations for engine usage data
 if df_new_engine_usage:
     # Row for SN must exist for engine usage data
