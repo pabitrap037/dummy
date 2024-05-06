@@ -1,3 +1,46 @@
+def get_engine_usage_data(df_new_ser_num: DataFrame, df_autoloader: DataFrame) -> DataFrame:
+    """
+    Retrieve engine usage data from Hawkeye database for dataframe of serial numbers.
+    """
+    sn_list = create_ser_num_list(df_new_ser_num)
+
+    df_new_engine_usage = engine_usage_df(sn_list)
+    df_new_engine_usage.display()
+    #adding more validations
+    validation_results_with_rows = []
+
+    for row in df_new_engine_usage.collect():
+        if row.serial_number is None:
+            validation_results_with_rows.append(("Row for serial number missing", row))
+        elif row.serial_number == "":
+            validation_results_with_rows.append(("Empty serial number", row))
+        if row.engine_flight_hours == 0 or row.cycles == 0:
+            validation_results_with_rows.append(("Zero hours or cycles", row))
+        elif row.engine_flight_hours > row.cycles:
+            validation_results_with_rows.append(("Hours greater than cycles", row))
+        if row.opeartor == 'NOT CURRENTLY PLACED':
+            validation_results_with_rows.append(('NOT CURRENTLY PLACED values for operator column',row))
+
+    #thinking of adding send_email function with validation_results_with_rows
+    save_table(
+            df=,
+            table_name="tag_exception",
+            data_layer="exception",
+            version=version,
+            merge_schema=True,
+            header=True
+        )
+
+
+
+    invalid_rows = [row for message , row in validation_results_with_rows]
+    df_new_engine_usage = df_new_engine_usage.subtract(sc.parallelize(invalid_rows).toDF()) 
+
+   
+        return df_new_engine_usage, df_filtered
+
+
+*********************************************************
 def validate_engine_usage_data(df_new_engine_usage):
     # Initialize an empty list to store validation results and corresponding rows
     validation_results_with_rows = []
